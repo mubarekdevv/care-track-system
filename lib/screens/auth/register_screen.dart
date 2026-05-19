@@ -1,4 +1,3 @@
-import 'package:child_and_student_care_and_tracking_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -106,7 +105,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: () async {
+                onPressed: () {
                   print("Signing up: ${_nameController.text}");
                   String name = _nameController.text.trim();
                   String email = _emailController.text.trim();
@@ -120,27 +119,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     _showError("Password must be at least 6 characters");
                   } else {
                     print("Logic passed! Calling Firebase for: $email");
-
-                    // 1. Show a loading indicator (Optional but professional)
-  
-                  // 2. Call the backend service
-                  final authService = AuthService(); // Ensure you import your AuthService file
-                  final user = await authService.signUp(
-                    email, 
-                    password, 
-                    name, 
-                    _selectedRole
-                  );
-
-  if (user != null) {
-    // 🎉 Success! 
-    print("User registered in Firebase!");
-    // Navigate to Dashboard or show Success message
-    Navigator.pushReplacementNamed(context, '/'); 
-  } else {
-    // ❌ Failed (Email already exists, etc.)
-    _showError("Registration failed. Please try again.");
-  }
                   }
 
                 },
