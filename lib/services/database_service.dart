@@ -7,10 +7,22 @@ class DatabaseService {
   // 👶 Function to add a child to the database
   Future<void> addChild(ChildModel child) async {
     try {
-      await _db.collection('children').add(child.toMap());
+      await _db.collection('children').add(child.toMap()).timeout(const Duration(seconds: 10));
       print("Child added successfully!");
     } catch (e) {
       print("Error adding child: $e");
+      rethrow;
+    }
+  }
+
+  // 👶 Function to save a child with a pre-generated ID (useful for photo uploads)
+  Future<void> setChild(String childId, ChildModel child) async {
+    try {
+      await _db.collection('children').doc(childId).set(child.toMap()).timeout(const Duration(seconds: 10));
+      print("Child set successfully!");
+    } catch (e) {
+      print("Error setting child: $e");
+      rethrow;
     }
   }
 

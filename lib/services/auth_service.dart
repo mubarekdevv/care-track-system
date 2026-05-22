@@ -26,7 +26,7 @@ class AuthService {
             .timeout(const Duration(seconds: 10));
       }
       return user;
-    } on FirebaseAuthException {
+    } on FirebaseAuthException catch (e) {
       // 🚀 Rethrow the specific Firebase error so the UI can show the right message
       rethrow;
     } catch (e) {
@@ -41,22 +41,25 @@ class AuthService {
       UserCredential result = await _auth.signInWithEmailAndPassword(
           email: email, password: password);
       return result.user;
+    } on FirebaseAuthException catch (e) {
+      rethrow;
     } catch (e) {
       print("Login error: $e");
-      return null;
+      rethrow;
     }
   }
 
 // 🧐 Get User Data (To check their Role)
   Future<UserModel?> getUserData(String uid) async {
     try {
-      DocumentSnapshot doc = await _db.collection('users').doc(uid).get();
+      DocumentSnapshot doc = await _db.collection('users').doc(uid).get().timeout(const Duration(seconds: 10));
       if (doc.exists) {
         return UserModel.fromMap(doc.data() as Map<String, dynamic>);
       }
       return null;
     } catch (e) {
-      return null;
+      print("Get user data error: $e");
+      rethrow;
     }
   }
   

@@ -1,0 +1,129 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../models/user_model.dart';
+import '../services/auth_service.dart';
+
+class AuthProvider with ChangeNotifier {
+  final AuthService _authService = AuthService();
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+
+  UserModel? _currentUser;
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  UserModel? get currentUser => _currentUser;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  bool get isAuthenticated => _currentUser != null;
+
+  AuthProvider() {
+    _init();
+  }
+
+  // ⏱️ Auto checks auth session on startup
+  Future<void> _init() async {
+    _isLoading = true;
+    notifyListeners();
+    
+    User? firebaseUser = _firebaseAuth.currentUser;
+    if (firebaseUser != null) {
+      try {
+        _currentUser = await _authService.getUserData(firebaseUser.uid);
+      } catch (e) {
+        print("Auth initialization error: $e");
+        _errorMessage = "Failed to load user profile.";
+        _currentUser = null;
+      }
+    }
+    
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  // 🧹 Helper to clear error state
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  // 🔑 Sign In Action
+  Future<bool> login(String email, String password) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      User? user = await _authService.signIn(email, password);
+      if (user != null) {
+        _currentUser = await _authService.getUserData(user.uid);
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+      throw FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'Could not log in. User profile was not found.',
+      );
+    } catch (e) {
+      _isLoading = false;
+      if (e is FirebaseAuthException) {
+        _errorMessage = e.message ?? "Authentication failed";
+      } else {
+        _errorMessage = e.toString();
+      }
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // 🚀 Sign Up Action
+  Future<bool> register({
+    required String email,
+    required String password,
+    required String name,
+    required String role,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      User? user = await _authService.signUp(email, password, name, role);
+      if (user != null) {
+        _currentUser = UserModel(uid: user.uid, email: email, fullName: name, role: role);
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+      throw FirebaseAuthException(
+        code: 'registration-failed',
+        message: 'Registration failed. Please try again.',
+      );
+    } catch (e) {
+      _isLoading = false;
+      if (e is FirebaseAuthException) {
+        _errorMessage = e.message ?? "Registration failed";
+      } else {
+        _errorMessage = e.toString();
+      }
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // 🚪 Sign Out Action
+  Future<void> logout() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _firebaseAuth.signOut();
+      _currentUser = null;
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+}
