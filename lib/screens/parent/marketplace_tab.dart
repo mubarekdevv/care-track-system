@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../core/constants/app_branding.dart';
 import '../../core/constants/marketplace_assets.dart';
 import '../../core/constants/marketplace_catalog.dart';
+import '../../core/constants/marketplace_recommendations.dart';
 import '../../core/constants/routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/product_model.dart';
+import '../../providers/child_provider.dart';
 import '../../widgets/marketplace/product_image.dart';
+import '../../widgets/marketplace/cart_icon_button.dart';
+import '../../widgets/navigation/dashboard_header_actions.dart';
 
 class MarketplaceTab extends StatefulWidget {
   const MarketplaceTab({super.key});
@@ -48,8 +54,21 @@ class _MarketplaceTabState extends State<MarketplaceTab> {
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            SliverToBoxAdapter(child: _buildHeader(context, isDark)),
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DashboardCompactToolbar(
+                    trailingActions: [
+                      MarketplaceCartIconButton(isDark: isDark),
+                    ],
+                  ),
+                  _buildHeader(context, isDark),
+                ],
+              ),
+            ),
             SliverToBoxAdapter(child: _buildPromoBanner(isDark)),
+            SliverToBoxAdapter(child: _buildRecommendations(context, isDark)),
             SliverToBoxAdapter(child: _buildCategoryRow(isDark)),
             if (products.isEmpty)
               SliverFillRemaining(
@@ -69,7 +88,7 @@ class _MarketplaceTabState extends State<MarketplaceTab> {
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 0.72,
+                    childAspectRatio: 0.68,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) => _ProductCard(product: products[index], isDark: isDark),
@@ -90,7 +109,7 @@ class _MarketplaceTabState extends State<MarketplaceTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'KidCare Shop',
+            AppBranding.shopName,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.4,
@@ -124,6 +143,52 @@ class _MarketplaceTabState extends State<MarketplaceTab> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRecommendations(BuildContext context, bool isDark) {
+    final children = context.watch<ChildProvider>().children;
+    final picks = MarketplaceRecommendations.forChildren(children);
+    final headline = MarketplaceRecommendations.headlineFor(children);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+          child: Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded, size: 18, color: AppTheme.primaryBlue.withValues(alpha: 0.9)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  headline,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 210,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: picks.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              return SizedBox(
+                width: 148,
+                child: _ProductCard(
+                  product: picks[index],
+                  isDark: isDark,
+                  compact: true,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -197,41 +262,64 @@ class _MarketplaceTabState extends State<MarketplaceTab> {
   }
 
   Widget _buildCategoryRow(bool isDark) {
-    return SizedBox(
-      height: 48,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-        itemCount: MarketplaceCatalog.categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final category = MarketplaceCatalog.categories[index];
-          final selected = _selectedCategory == index;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var index = 0; index < MarketplaceCatalog.categories.length; index++)
+                    _categoryChip(index, isDark, leadingGap: index > 0),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
-          return FilterChip(
-            selected: selected,
-            showCheckmark: false,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-            label: Text(category.label),
-            avatar: Icon(
+  Widget _categoryChip(int index, bool isDark, {bool leadingGap = false}) {
+    final category = MarketplaceCatalog.categories[index];
+    final selected = _selectedCategory == index;
+
+    return Padding(
+      padding: EdgeInsets.only(left: leadingGap ? 8 : 0),
+      child: FilterChip(
+        selected: selected,
+        showCheckmark: false,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
               category.icon,
               size: 16,
               color: selected ? Colors.white : category.color,
             ),
-            selectedColor: category.color,
-            backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
-            labelStyle: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-              color: selected ? Colors.white : (isDark ? Colors.grey[300] : AppTheme.textPrimary),
-            ),
-            side: BorderSide(
-              color: selected ? category.color : (isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
-            ),
-            onSelected: (_) => setState(() => _selectedCategory = index),
-          );
-        },
+            const SizedBox(width: 6),
+            Text(category.label),
+          ],
+        ),
+        selectedColor: category.color,
+        backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
+        labelStyle: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+          color: selected ? Colors.white : (isDark ? Colors.grey[300] : AppTheme.textPrimary),
+        ),
+        side: BorderSide(
+          color: selected ? category.color : (isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
+        ),
+        onSelected: (_) => setState(() => _selectedCategory = index),
       ),
     );
   }
@@ -240,8 +328,13 @@ class _MarketplaceTabState extends State<MarketplaceTab> {
 class _ProductCard extends StatelessWidget {
   final ProductModel product;
   final bool isDark;
+  final bool compact;
 
-  const _ProductCard({required this.product, required this.isDark});
+  const _ProductCard({
+    required this.product,
+    required this.isDark,
+    this.compact = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -259,26 +352,31 @@ class _ProductCard extends StatelessWidget {
             border: Border.all(color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(10),
+            padding: EdgeInsets.all(compact ? 8 : 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AspectRatio(
-                  aspectRatio: 1.15,
-                  child: ProductImage(
-                    assetPath: product.imageAsset,
-                    networkUrl: product.imageUrl,
-                    accent: accent,
+                Expanded(
+                  child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    fit: BoxFit.cover,
+                    child: ProductImage(
+                      assetPath: product.imageAsset,
+                      networkUrl: product.imageUrl,
+                      accent: accent,
+                      borderRadius: BorderRadius.circular(12),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: compact ? 6 : 8),
                 Text(
                   product.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: compact ? 12 : 13,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -286,31 +384,30 @@ class _ProductCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: compact ? 10 : 11,
                     color: isDark ? Colors.grey[400] : AppTheme.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: compact ? 4 : 6),
                 Row(
                   children: [
-                    Flexible(
+                    Expanded(
                       child: Text(
                         product.priceDisplay,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primaryBlue,
-                          fontSize: 13,
+                          fontSize: compact ? 12 : 13,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.star_rounded, size: 13, color: Color(0xFFF59E0B)),
+                    const Icon(Icons.star_rounded, size: 12, color: Color(0xFFF59E0B)),
                     Text(
                       product.rating.toStringAsFixed(1),
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.w600,
                         color: isDark ? Colors.grey[400] : AppTheme.textSecondary,
                       ),

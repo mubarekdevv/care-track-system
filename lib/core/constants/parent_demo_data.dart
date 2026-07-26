@@ -3,6 +3,10 @@ import '../../models/child_model.dart';
 import '../../models/parent_insights.dart';
 
 /// Demo insights until Firestore collections are wired for academics/billing.
+///
+/// **DEPRECATED — Phase 2.** Do not use in new code. Will be removed in Phase 4
+/// when parent dashboards show empty states instead of synthetic grades/billing.
+@Deprecated('Use AcademicRepository and real Firestore data. Removed in Phase 4.')
 class ParentDemoData {
   ParentDemoData._();
 

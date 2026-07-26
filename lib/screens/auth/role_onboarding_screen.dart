@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/role_onboarding.dart';
 import '../../core/constants/role_styles.dart';
 import '../../core/constants/user_role.dart';
+import '../../core/constants/routes.dart';
 import '../../core/navigation/auth_navigation.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/auth/auth_illustration.dart';
@@ -45,7 +46,13 @@ class _RoleOnboardingScreenState extends State<RoleOnboardingScreen> {
         curve: Curves.easeOutCubic,
       );
     } else {
-      AuthNavigation.openRegister(context, _role);
+      switch (_role) {
+        case UserRole.child:
+          Navigator.pushNamed(context, AppRoutes.studentRegister);
+          break;
+        default:
+          AuthNavigation.openRegister(context, _role);
+      }
     }
   }
 
@@ -91,7 +98,7 @@ class _RoleOnboardingScreenState extends State<RoleOnboardingScreen> {
                       ),
                     ),
                     const Spacer(),
-                    const KidCareLogo(iconSize: 20, fontSize: 18),
+                    const KidCareLogo(iconSize: 20, fontSize: 16, compact: true),
                     const Spacer(),
                     TextButton(
                       onPressed: () =>

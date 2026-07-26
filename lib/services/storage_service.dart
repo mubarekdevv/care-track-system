@@ -9,8 +9,8 @@ class StorageService {
   Future<String> uploadChildPhotoFromFile(String childId, File file) async {
     try {
       Reference ref = _storage.ref().child('child_photos').child('$childId.jpg');
-      UploadTask uploadTask = ref.putFile(file);
-      TaskSnapshot snapshot = await uploadTask;
+      final uploadTask = ref.putFile(file);
+      final snapshot = await uploadTask.timeout(const Duration(seconds: 45));
       String downloadUrl = await snapshot.ref.getDownloadURL();
       return downloadUrl;
     } catch (e) {
@@ -23,8 +23,8 @@ class StorageService {
     try {
       Reference ref = _storage.ref().child('child_photos').child('$childId.jpg');
       SettableMetadata metadata = SettableMetadata(contentType: 'image/jpeg');
-      UploadTask uploadTask = ref.putData(bytes, metadata);
-      TaskSnapshot snapshot = await uploadTask;
+      final uploadTask = ref.putData(bytes, metadata);
+      final snapshot = await uploadTask.timeout(const Duration(seconds: 45));
       String downloadUrl = await snapshot.ref.getDownloadURL();
       return downloadUrl;
     } catch (e) {
@@ -36,8 +36,8 @@ class StorageService {
   Future<String> uploadUserPhotoFromFile(String uid, File file) async {
     try {
       Reference ref = _storage.ref().child('user_photos').child('$uid.jpg');
-      UploadTask uploadTask = ref.putFile(file);
-      TaskSnapshot snapshot = await uploadTask;
+      final uploadTask = ref.putFile(file);
+      final snapshot = await uploadTask.timeout(const Duration(seconds: 45));
       return snapshot.ref.getDownloadURL();
     } catch (e) {
       print("Error uploading user photo file: $e");
@@ -49,8 +49,8 @@ class StorageService {
     try {
       Reference ref = _storage.ref().child('user_photos').child('$uid.jpg');
       SettableMetadata metadata = SettableMetadata(contentType: 'image/jpeg');
-      UploadTask uploadTask = ref.putData(bytes, metadata);
-      TaskSnapshot snapshot = await uploadTask;
+      final uploadTask = ref.putData(bytes, metadata);
+      final snapshot = await uploadTask.timeout(const Duration(seconds: 45));
       return snapshot.ref.getDownloadURL();
     } catch (e) {
       print("Error uploading user photo bytes: $e");

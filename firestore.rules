@@ -1,0 +1,214 @@
+rules_version = '2';
+// Deploy: firebase deploy --only firestore:rules
+// Parents must be able to enroll children and use health/doctor matching.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDocExists() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userRole() {
+      return userDocExists() ? userDoc().data.role : '';
+    }
+
+    function isAdmin() {
+      return userRole() == 'Admin';
+    }
+
+    function isParent() {
+      return userRole() == 'Parent';
+    }
+
+    function isTeacher() {
+      return userRole() == 'Teacher';
+    }
+
+    function isHealthcare() {
+      return userRole() == 'Healthcare';
+    }
+
+    function isStaff() {
+      return isAdmin() || isTeacher() || isHealthcare();
+    }
+
+    function isChild() {
+      return userRole() == 'Child';
+    }
+
+    function linkedStudentId() {
+      return userDocExists() && userDoc().data.linkedStudentId is string
+        ? userDoc().data.linkedStudentId
+        : '';
+    }
+
+    match /schools/{schoolId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /grade_levels/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /class_rooms/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /subjects/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /class_subjects/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+    }
+
+    match /children/{studentId} {
+      allow read: if isSignedIn() && (
+        isStaff() ||
+        resource.data.parentId == request.auth.uid ||
+        resource.data.studentUserId == request.auth.uid ||
+        (isChild() && studentId == linkedStudentId())
+      );
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.parentId == request.auth.uid ||
+        request.resource.data.parentId == request.auth.uid ||
+        resource.data.studentUserId == request.auth.uid ||
+        request.resource.data.studentUserId == request.auth.uid
+      );
+    }
+
+    match /enrollments/{id} {
+      allow read: if isSignedIn() && (
+        isStaff() || isParent() ||
+        (isChild() && resource.data.studentId == linkedStudentId())
+      );
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (isAdmin() || isParent());
+    }
+
+    match /parent_student_relationships/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.parentId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        isAdmin() || resource.data.parentId == request.auth.uid
+      );
+    }
+
+    match /family_link_codes/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (
+        isAdmin() || isParent() ||
+        (isChild() && request.resource.data.linkedStudentUserId == request.auth.uid)
+      );
+    }
+
+    match /health_profiles/{studentId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (isAdmin() || isParent() || isHealthcare());
+    }
+
+    match /healthcare_access/{studentId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (isAdmin() || isParent());
+    }
+
+    match /health_appointments/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (isAdmin() || isHealthcare() || isParent());
+    }
+
+    match /doctor_match_requests/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (isAdmin() || isHealthcare() || isParent());
+    }
+
+    match /student_doctor_assignments/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (isAdmin() || isParent() || isHealthcare());
+    }
+
+    match /enrollment_readiness_requests/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (isAdmin() || isParent());
+    }
+
+    match /notifications/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+    }
+
+    match /assignments/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (isAdmin() || isTeacher());
+    }
+
+    match /assignment_submissions/{id} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+    }
+
+    match /attendance/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (isAdmin() || isTeacher());
+    }
+
+    match /assessments/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (isAdmin() || isTeacher());
+    }
+
+    match /message_threads/{id} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /messages/{id} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /marketplace_orders/{id} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /products/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /parent_invitations/{id} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /{document=**} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}

@@ -30,10 +30,13 @@ class AuthAssets {
       case registerHero:
         return ImageSources.registerHero;
       case '$_base/register_teacher.svg':
+      case '$_base/feature_teacher.svg':
         return ImageSources.registerTeacher;
       case '$_base/register_healthcare.svg':
+      case '$_base/feature_healthcare.svg':
         return ImageSources.registerHealthcare;
       case '$_base/register_child.svg':
+      case '$_base/feature_child.svg':
         return ImageSources.registerChild;
       case featureParent:
         return ImageSources.featureParent;

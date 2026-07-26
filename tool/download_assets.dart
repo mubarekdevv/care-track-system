@@ -28,13 +28,13 @@ const _sources = <String, String>{
   'assets/images/auth/register_child.jpg':
       'https://images.unsplash.com/photo-1544776193-352d25ca82cd?auto=format&fit=crop&w=800&q=80',
   'assets/images/auth/feature_parent.jpg':
-      'https://picsum.photos/seed/kidcare-feature-parent/480/480.jpg',
+      'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=480&q=80',
   'assets/images/auth/feature_teacher.jpg':
-      'https://picsum.photos/seed/kidcare-feature-teacher/480/480.jpg',
+      'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=480&q=80',
   'assets/images/auth/feature_healthcare.jpg':
-      'https://picsum.photos/seed/kidcare-feature-health/480/480.jpg',
+      'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=480&q=80',
   'assets/images/auth/feature_child.jpg':
-      'https://picsum.photos/seed/kidcare-feature-child/480/480.jpg',
+      'https://images.unsplash.com/photo-1544776193-352d25ca82cd?auto=format&fit=crop&w=480&q=80',
   'assets/images/auth/feature_secure.jpg':
       'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=480&q=80',
 };

@@ -38,6 +38,15 @@ class RoleStyles {
       ),
       'accent': Color(0xFF9013FE),
     },
+    'Admin': {
+      'icon': Icons.admin_panel_settings_rounded,
+      'gradient': LinearGradient(
+        colors: [Color(0xFF374151), Color(0xFF1F2937)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      'accent': Color(0xFF374151),
+    },
   };
 
   static Map<String, dynamic> forRole(String role) {

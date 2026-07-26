@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/app_branding.dart';
 import '../../core/constants/routes.dart';
 import '../../core/constants/role_styles.dart';
 import '../../core/constants/user_role.dart';
@@ -27,7 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isInit = true;
   bool _roleLocked = false;
 
-  List<String> get _roles => UserRole.labels;
+  List<String> get _roles => UserRole.registerableLabels;
 
   @override
   void didChangeDependencies() {
@@ -98,15 +99,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     final success = await authProvider.register(
       email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
+      password: _passwordController.text,
       name: _nameController.text.trim(),
       role: _selectedRole,
     );
 
     if (success) {
-      _showSuccessSnackbar('Welcome, ${_nameController.text.trim()}! Account created.');
+      final name = _nameController.text.trim();
+      final role = _selectedRole;
+      final followUp = role == UserRole.teacher.label
+          ? ' After sign-in you can add your grades and subjects.'
+          : role == UserRole.healthcare.label
+              ? ' After sign-in you can add the health services you provide.'
+              : '';
+      _showSuccessSnackbar('Welcome, $name! Account created.$followUp');
       if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.roleSelection, (_) => false);
       }
     } else {
       _showErrorSnackbar(authProvider.errorMessage ?? 'Registration failed. Please try again.');
@@ -118,7 +126,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final authProvider = Provider.of<AuthProvider>(context);
     final roleAccent = RoleStyles.forRole(_selectedRole)['accent'] as Color;
-
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -171,7 +178,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Join KidCare to track progress, manage classrooms, and stay connected.',
+                            'Join ${AppBranding.name} to track progress, manage classrooms, and stay connected.',
                             style: TextStyle(
                               color: isDark ? Colors.grey[400] : Colors.grey[600],
                               fontSize: 14,
@@ -179,7 +186,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                           const SizedBox(height: 28),
-
                           AuthTextField(
                             controller: _nameController,
                             label: 'Full Name',
@@ -238,7 +244,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             },
                           ),
                           const SizedBox(height: 20),
-
                           Text(
                             'Assigned Role',
                             style: TextStyle(
@@ -288,6 +293,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(14),
                                   borderSide: BorderSide(
+                                    
                                     color: isDark ? Colors.grey[700]! : const Color(0xFFE5E7EB),
                                   ),
                                 ),
@@ -308,7 +314,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               onChanged: (val) => setState(() => _selectedRole = val!),
                             ),
                           const SizedBox(height: 32),
-
                           AuthPrimaryButton(
                             label: 'Create Account',
                             backgroundColor: roleAccent,

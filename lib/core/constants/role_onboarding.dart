@@ -30,6 +30,8 @@ class RoleOnboarding {
         return AuthAssets.registerHeroForRole('Child');
       case UserRole.parent:
         return AuthAssets.registerHero;
+      case UserRole.admin:
+        return AuthAssets.featureSecure;
     }
   }
 
@@ -43,6 +45,8 @@ class RoleOnboarding {
         return 'Welcome, Explorer';
       case UserRole.healthcare:
         return 'Welcome, Care Provider';
+      case UserRole.admin:
+        return 'Welcome, Admin';
     }
   }
 
@@ -56,11 +60,37 @@ class RoleOnboarding {
         return 'Your personal hub for tasks, badges, and daily adventures at school.';
       case UserRole.healthcare:
         return 'Professional tools for pediatric records, vaccinations, and clinic visits.';
+      case UserRole.admin:
+        return 'Set up your school structure — grades, classes, subjects, and staff.';
     }
   }
 
   static List<OnboardingSlide> slidesFor(UserRole role) {
     switch (role) {
+      case UserRole.admin:
+        return const [
+          OnboardingSlide(
+            title: 'School Setup',
+            description:
+                'Create grade levels, class sections, and subjects for your school.',
+            icon: Icons.apartment_rounded,
+            imageAsset: AuthAssets.featureSecure,
+          ),
+          OnboardingSlide(
+            title: 'Assign Teachers',
+            description:
+                'Link teachers to classes and subjects so parents get the right contacts automatically.',
+            icon: Icons.groups_rounded,
+            imageAsset: AuthAssets.featureTeacher,
+          ),
+          OnboardingSlide(
+            title: 'Ready for Families',
+            description:
+                'Once setup is done, parents can enroll students and the ecosystem goes live.',
+            icon: Icons.check_circle_rounded,
+            imageAsset: AuthAssets.featureParent,
+          ),
+        ];
       case UserRole.parent:
         return const [
           OnboardingSlide(
@@ -78,7 +108,7 @@ class RoleOnboarding {
             imageAsset: AuthAssets.featureSecure,
           ),
           OnboardingSlide(
-            title: 'KidCare Marketplace',
+            title: 'Family Shop',
             description:
                 'Shop books, uniforms, and health essentials with recommendations tailored to your child.',
             icon: Icons.storefront_rounded,

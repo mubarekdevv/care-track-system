@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/layout/app_breakpoints.dart';
+import '../../core/constants/app_branding.dart';
 import '../../core/constants/role_options.dart';
 import '../../core/constants/role_styles.dart';
 import '../../core/navigation/auth_navigation.dart';
@@ -11,8 +13,7 @@ class RoleSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final size = MediaQuery.of(context).size;
-    final isWide = size.width > 680;
+    final isWide = AppBreakpoints.isMediumOrWider(context);
 
     return Scaffold(
       body: Container(
@@ -59,7 +60,7 @@ class RoleSelectionScreen extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
-                    const KidCareLogo(iconSize: 22, fontSize: 20),
+                    const KidCareLogo(iconSize: 22, fontSize: 18, compact: true),
                     const Spacer(),
                     const SizedBox(width: 48),
                   ],
@@ -78,7 +79,7 @@ class RoleSelectionScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(28, 8, 28, 24),
                 child: Text(
-                  'Select a profile type to log in or register for your KidCare dashboard.',
+                  'Select a profile type to log in or register for your ${AppBranding.name} dashboard.',
                   style: TextStyle(
                     color: isDark ? Colors.grey[400] : AppTheme.textSecondary,
                     height: 1.45,

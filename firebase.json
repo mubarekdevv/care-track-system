@@ -1,1 +1,28 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"care-track-system-app","appId":"1:673530425307:android:74b173b1c3b0cbde2fc1fe","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"care-track-system-app","configurations":{"android":"1:673530425307:android:74b173b1c3b0cbde2fc1fe","ios":"1:673530425307:ios:83841206895a264a2fc1fe","macos":"1:673530425307:ios:83841206895a264a2fc1fe","web":"1:673530425307:web:ff3a534d3d6717ad2fc1fe","windows":"1:673530425307:web:897deca08af8827b2fc1fe"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "care-track-system-app",
+          "appId": "1:673530425307:android:74b173b1c3b0cbde2fc1fe",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "care-track-system-app",
+          "configurations": {
+            "android": "1:673530425307:android:74b173b1c3b0cbde2fc1fe",
+            "ios": "1:673530425307:ios:83841206895a264a2fc1fe",
+            "macos": "1:673530425307:ios:83841206895a264a2fc1fe",
+            "web": "1:673530425307:web:ff3a534d3d6717ad2fc1fe",
+            "windows": "1:673530425307:web:897deca08af8827b2fc1fe"
+          }
+        }
+      }
+    }
+  }
+}

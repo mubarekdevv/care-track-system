@@ -1,41 +1,64 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 
-/// Maps Firebase Auth error codes (and generic exceptions) to friendly,
-/// user-facing messages so the UI never shows raw technical errors.
+/// Maps Firebase Auth errors to clear, actionable copy for the UI.
 class AuthErrorMessages {
-  const AuthErrorMessages._();
+  AuthErrorMessages._();
 
-  static const String _fallback =
-      'Something went wrong. Please try again in a moment.';
-
-  static const Map<String, String> _messages = {
-    'invalid-email': 'That email address doesn\'t look right.',
-    'user-disabled': 'This account has been disabled. Contact support.',
-    'user-not-found': 'No account found with those details.',
-    'wrong-password': 'Incorrect email or password.',
-    'invalid-credential': 'Incorrect email or password.',
-    'email-already-in-use': 'An account already exists for that email.',
-    'operation-not-allowed': 'This sign-in method is not enabled.',
-    'weak-password': 'Please choose a stronger password (6+ characters).',
-    'too-many-requests':
-        'Too many attempts. Please wait a moment and try again.',
-    'network-request-failed':
-        'Network error. Check your connection and try again.',
-    'requires-recent-login':
-        'Please sign in again to complete this action.',
-    'profile-not-found':
-        'We couldn\'t load your profile. Please try again.',
-    'registration-failed': 'Registration failed. Please try again.',
-  };
-
-  /// Returns a friendly message for a known Firebase error [code].
-  static String fromCode(String code) => _messages[code] ?? _fallback;
-
-  /// Extracts a friendly message from any thrown [error] object.
   static String fromException(Object error) {
     if (error is FirebaseAuthException) {
-      return _messages[error.code] ?? (error.message ?? _fallback);
+      return fromCode(error.code, fallback: error.message);
     }
-    return _fallback;
+    if (error is FirebaseException) {
+      if (error.code == 'permission-denied') {
+        return 'Database access denied. Ask your admin to deploy the latest Firestore rules, then try again.';
+      }
+      if (error.code == 'unavailable' || error.code == 'deadline-exceeded') {
+        return 'Could not reach the database. Check your internet connection, then try again.';
+      }
+      if (error.code == 'internal') {
+        return 'Database connection error. Refresh the page and try signing in again.';
+      }
+    }
+    if (error is TimeoutException) {
+      return 'Could not load your profile in time. Check your internet connection, then try again.';
+    }
+    final message = error.toString();
+    if (message.contains('INTERNAL ASSERTION') ||
+        message.contains('firestore') && message.contains('Unexpected state')) {
+      return 'Database connection error. Refresh the page (Ctrl+F5) and try signing in again.';
+    }
+    return 'Something went wrong. Please try again.';
+  }
+
+  static String fromCode(String code, {String? fallback}) {
+    switch (code) {
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      case 'user-disabled':
+        return 'This account has been disabled. Contact support for help.';
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+      case 'invalid-login-credentials':
+        return 'Incorrect email or password. If you are new, create an account first, or use Forgot password.';
+      case 'email-already-in-use':
+        return 'An account with this email already exists. Try signing in instead.';
+      case 'weak-password':
+        return 'Password is too weak. Use at least 6 characters.';
+      case 'operation-not-allowed':
+        return 'Email sign-in is not enabled for this app. Enable Email/Password in Firebase Authentication.';
+      case 'too-many-requests':
+        return 'Too many attempts. Wait a few minutes and try again.';
+      case 'network-request-failed':
+        return 'Network error. Check your internet connection and try again.';
+      case 'profile-not-found':
+        return 'Your account signed in, but the profile is missing. Try registering again or contact support.';
+      case 'permission-denied':
+        return 'Database access denied. Deploy the latest Firestore rules and try again.';
+      default:
+        return fallback ?? 'Authentication failed. Please try again.';
+    }
   }
 }

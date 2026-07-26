@@ -1,6 +1,8 @@
 # Miscellaneous
+.refact/
 *.class
 *.log
+flutter_*.log
 *.pyc
 *.swp
 .DS_Store

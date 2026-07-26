@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../core/constants/marketplace_catalog.dart';
+import '../../core/constants/routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/product_model.dart';
+import '../../providers/cart_provider.dart';
 import '../../widgets/marketplace/product_image.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -211,12 +215,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   void _addToCart() {
+    context.read<CartProvider>().addProduct(product, quantity: _quantity);
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Added $_quantity × ${product.name} to cart (coming soon)'),
+        content: Text('Added $_quantity × ${product.name} to cart'),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
+        action: SnackBarAction(
+          label: 'View cart',
+          onPressed: () => AppRoutes.push(context, AppRoutes.cart),
+        ),
       ),
     );
   }

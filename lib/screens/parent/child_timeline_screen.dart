@@ -1,11 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../core/constants/parent_demo_data.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/academic/enrollment_display.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/firestore/firestore_academic_repository.dart';
+import '../../models/academic_models.dart';
+import '../../models/child_activity_event.dart';
 import '../../models/child_model.dart';
-import '../../models/parent_insights.dart';
+import '../../providers/child_provider.dart';
+import '../../providers/school_admin_provider.dart';
 import '../../widgets/dashboard/simple_bar_chart.dart';
-import '../../widgets/parent/child_photo_avatar.dart';
+import '../../widgets/parent/child_account_link_status_chip.dart';
+import '../../widgets/parent/parent_child_link_code_action.dart';
+import '../../widgets/parent/parent_health_module_panel.dart';
+import '../../widgets/profile/kidcare_avatar_image.dart';
+import '../../widgets/navigation/kidcare_section_tab_bar.dart';
+
+class ChildTimelineRouteArgs {
+  final ChildModel child;
+  final int initialTabIndex;
+
+  const ChildTimelineRouteArgs({
+    required this.child,
+    this.initialTabIndex = 0,
+  });
+}
 
 class ChildTimelineScreen extends StatefulWidget {
   const ChildTimelineScreen({super.key});
@@ -22,7 +42,17 @@ class _ChildTimelineScreenState extends State<ChildTimelineScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _child ??= ModalRoute.of(context)?.settings.arguments as ChildModel?;
+    if (_child != null) return;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is ChildTimelineRouteArgs) {
+      _child = args.child;
+      final tab = args.initialTabIndex.clamp(0, 2);
+      if (_tabController.index != tab) {
+        _tabController.index = tab;
+      }
+    } else if (args is ChildModel) {
+      _child = args;
+    }
   }
 
   @override
@@ -37,18 +67,33 @@ class _ChildTimelineScreenState extends State<ChildTimelineScreen>
     super.dispose();
   }
 
+  ChildModel? _resolveChild(ChildProvider provider) {
+    final local = _child;
+    if (local == null) return null;
+    for (final c in provider.children) {
+      if (c.id == local.id) return c;
+    }
+    return local;
+  }
+
+  String _classLabel(SchoolAdminProvider school, ChildModel child) {
+    return EnrollmentDisplay.classOrGradeLabel(
+      school,
+      child.classRoomId,
+      gradeLevelId: child.gradeLevelId,
+      fallback: 'Not enrolled yet',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final child = _child;
+    final child = _resolveChild(context.watch<ChildProvider>());
     if (child == null) {
       return const Scaffold(body: Center(child: Text('Child not found')));
     }
 
+    final school = context.watch<SchoolAdminProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final grades = ParentDemoData.gradesFor(child);
-    final events = ParentDemoData.timelineFor(child);
-    final dateFmt = DateFormat('MMM d, yyyy');
-
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.warmNeutral,
       body: NestedScrollView(
@@ -57,6 +102,12 @@ class _ChildTimelineScreenState extends State<ChildTimelineScreen>
             expandedHeight: 220,
             pinned: true,
             stretch: true,
+            actions: [
+              ParentChildLinkCodeIconButton(
+                child: child,
+                iconColor: Colors.white,
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
@@ -72,10 +123,11 @@ class _ChildTimelineScreenState extends State<ChildTimelineScreen>
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        ChildPhotoAvatar(
-                          child: child,
+                        KidCareAvatarImage(
+                          photoUrl: child.imageUrl,
+                          name: child.name,
                           radius: 36,
-                          borderColor: Colors.white,
+                          accent: Colors.white,
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -96,18 +148,11 @@ class _ChildTimelineScreenState extends State<ChildTimelineScreen>
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${child.age} years • ${ParentDemoData.gradeForAge(child.age)}',
+                                '${child.age} years • ${_classLabel(school, child)}',
                                 style: const TextStyle(color: Colors.white70, fontSize: 13),
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Tap photo to update',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.85),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                              const SizedBox(height: 8),
+                              ChildAccountLinkStatusChip(child: child),
                             ],
                           ),
                         ),
@@ -117,25 +162,18 @@ class _ChildTimelineScreenState extends State<ChildTimelineScreen>
                 ),
               ),
             ),
-            bottom: TabBar(
+            bottom: KidCareSectionTabBar(
               controller: _tabController,
-              labelColor: AppTheme.primaryBlue,
-              unselectedLabelColor: isDark ? Colors.grey[400] : AppTheme.textSecondary,
-              indicatorColor: AppTheme.primaryBlue,
-              tabs: const [
-                Tab(text: 'Timeline'),
-                Tab(text: 'Academics'),
-                Tab(text: 'Health'),
-              ],
+              isDark: isDark,
             ),
           ),
         ],
         body: TabBarView(
           controller: _tabController,
           children: [
-            _TimelineTab(events: events, dateFmt: dateFmt, isDark: isDark),
-            _AcademicsTab(grades: grades, isDark: isDark),
-            _HealthTab(child: child, events: events, isDark: isDark),
+            _TimelineTab(child: child, isDark: isDark, school: school),
+            _AcademicsTab(child: child, isDark: isDark, school: school),
+            _HealthTab(child: child, isDark: isDark),
           ],
         ),
       ),
@@ -144,246 +182,428 @@ class _ChildTimelineScreenState extends State<ChildTimelineScreen>
 }
 
 class _TimelineTab extends StatelessWidget {
-  final List<TimelineEvent> events;
-  final DateFormat dateFmt;
+  final ChildModel child;
   final bool isDark;
+  final SchoolAdminProvider school;
 
   const _TimelineTab({
-    required this.events,
-    required this.dateFmt,
+    required this.child,
     required this.isDark,
+    required this.school,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      physics: const BouncingScrollPhysics(),
-      itemCount: events.length,
-      itemBuilder: (context, index) {
-        final event = events[index];
-        final color = ParentDemoData.colorForEventType(event.type);
-        final isLast = index == events.length - 1;
-
-        return IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: color.withValues(alpha: 0.4)),
-                    ),
-                    child: Icon(event.icon, color: color, size: 18),
-                  ),
-                  if (!isLast)
-                    Expanded(
-                      child: Container(
-                        width: 2,
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder,
-                      ),
-                    ),
-                ],
+    if (child.classRoomId == null) {
+      return ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          _SectionCard(
+            isDark: isDark,
+            title: 'Timeline',
+            child: Text(
+              'Enroll ${child.name} in a grade to see attendance, homework, and grade events.',
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: isDark ? Colors.grey[400] : AppTheme.textSecondary,
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? 0 : 20),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppTheme.darkSurface : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          event.title,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          dateFmt.format(event.date),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final repo = FirestoreAcademicRepository();
+    return StreamBuilder<List<AssessmentModel>>(
+      stream: repo.watchPublishedAssessmentsForStudent(child.id),
+      builder: (context, gradeSnap) {
+        return StreamBuilder<List<AttendanceRecordModel>>(
+          stream: repo.watchRecentAttendanceForStudent(child.id, maxRecords: 20),
+          builder: (context, attSnap) {
+            return StreamBuilder<List<AssignmentModel>>(
+              stream: repo.watchAssignmentsForStudent(child.id),
+              builder: (context, hwSnap) {
+                if (gradeSnap.connectionState == ConnectionState.waiting &&
+                    attSnap.connectionState == ConnectionState.waiting &&
+                    hwSnap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final events = ChildActivityEvent.merge(
+                  attendance: attSnap.data ?? [],
+                  assessments: gradeSnap.data ?? [],
+                  assignments: hwSnap.data ?? [],
+                  subjectNameFor: school.subjectNameForId,
+                );
+
+                if (events.isEmpty) {
+                  return ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      _SectionCard(
+                        isDark: isDark,
+                        title: 'Timeline',
+                        child: Text(
+                          'No activity yet.\n\nEvents appear when teachers mark attendance, assign homework, or publish grades.',
                           style: TextStyle(
-                            fontSize: 11,
-                            color: isDark ? Colors.grey[500] : AppTheme.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          event.description,
-                          style: TextStyle(
-                            fontSize: 12,
-                            height: 1.4,
+                            fontSize: 13,
+                            height: 1.5,
                             color: isDark ? Colors.grey[400] : AppTheme.textSecondary,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+                      ),
+                    ],
+                  );
+                }
+
+                return ListView.separated(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: events.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    return _TimelineEventTile(event: events[index], isDark: isDark);
+                  },
+                );
+              },
+            );
+          },
         );
       },
     );
   }
 }
 
-class _AcademicsTab extends StatelessWidget {
-  final List<SubjectGrade> grades;
+class _TimelineEventTile extends StatelessWidget {
+  final ChildActivityEvent event;
   final bool isDark;
 
-  const _AcademicsTab({required this.grades, required this.isDark});
+  const _TimelineEventTile({required this.event, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
-    final avg = grades.map((g) => g.score).reduce((a, b) => a + b) / grades.length;
+    final dateLabel = DateFormat('MMM d • h:mm a').format(event.at);
 
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      physics: const BouncingScrollPhysics(),
-      children: [
-        _SectionCard(
-          isDark: isDark,
-          title: 'Subject Performance',
-          child: SimpleBarChart(
-            labels: grades.map((g) => g.subject).toList(),
-            values: grades.map((g) => g.score).toList(),
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: event.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(event.icon, size: 18, color: event.color),
           ),
-        ),
-        const SizedBox(height: 14),
-        _SectionCard(
-          isDark: isDark,
-          title: 'Overall Average',
-          child: Row(
-            children: [
-              Text(
-                '${avg.toStringAsFixed(1)}%',
-                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppTheme.softGreen.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.title,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
-                child: const Text(
-                  '+8% vs last term',
+                const SizedBox(height: 2),
+                Text(
+                  event.subtitle,
                   style: TextStyle(
-                    color: AppTheme.softGreen,
-                    fontWeight: FontWeight.bold,
                     fontSize: 12,
+                    color: isDark ? Colors.grey[400] : AppTheme.textSecondary,
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-        ...grades.map(
-          (g) => Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _SectionCard(
-              isDark: isDark,
-              title: g.subject,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('${g.score.toInt()}%', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Text(
-                    g.change >= 0 ? '+${g.change.toInt()}% improvement' : '${g.change.toInt()}% change',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: g.change >= 0 ? AppTheme.softGreen : Colors.orange,
-                      fontWeight: FontWeight.w600,
-                    ),
+                const SizedBox(height: 4),
+                Text(
+                  dateLabel,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isDark ? Colors.grey[500] : AppTheme.textSecondary,
                   ),
-                ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AcademicsTab extends StatelessWidget {
+  final ChildModel child;
+  final bool isDark;
+  final SchoolAdminProvider school;
+
+  const _AcademicsTab({
+    required this.child,
+    required this.isDark,
+    required this.school,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (child.classRoomId == null) {
+      return ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          _SectionCard(
+            isDark: isDark,
+            title: 'Academics',
+            child: Text(
+              'Enroll ${child.name} in a grade to view homework and published grades.',
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: isDark ? Colors.grey[400] : AppTheme.textSecondary,
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      );
+    }
+
+    final repo = FirestoreAcademicRepository();
+    return StreamBuilder<List<AssignmentModel>>(
+      stream: repo.watchAssignmentsForStudent(child.id),
+      builder: (context, hwSnap) {
+        return StreamBuilder<List<AssessmentModel>>(
+          stream: repo.watchPublishedAssessmentsForStudent(child.id),
+          builder: (context, gradeSnap) {
+            if (hwSnap.connectionState == ConnectionState.waiting &&
+                gradeSnap.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final assignments = hwSnap.data ?? [];
+            final assessments = gradeSnap.data ?? [];
+            final chartData = _subjectChartData(assessments, school);
+
+            return ListView(
+              padding: const EdgeInsets.all(20),
+              physics: const BouncingScrollPhysics(),
+              children: [
+                if (chartData != null) ...[
+                  _SectionCard(
+                    isDark: isDark,
+                    title: 'Subject performance',
+                    child: SimpleBarChart(
+                      labels: chartData.labels,
+                      values: chartData.values,
+                      barColor: AppTheme.primaryBlue,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                _SectionCard(
+                  isDark: isDark,
+                  title: 'Homework (${assignments.length})',
+                  child: assignments.isEmpty
+                      ? Text(
+                          'No homework assigned yet for this class.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.4,
+                            color: isDark ? Colors.grey[400] : AppTheme.textSecondary,
+                          ),
+                        )
+                      : Column(
+                          children: assignments
+                              .map(
+                                (a) => _HomeworkRow(
+                                  assignment: a,
+                                  school: school,
+                                  isDark: isDark,
+                                ),
+                              )
+                              .toList(),
+                        ),
+                ),
+                const SizedBox(height: 14),
+                _SectionCard(
+                  isDark: isDark,
+                  title: 'Published grades (${assessments.length})',
+                  child: assessments.isEmpty
+                      ? Text(
+                          'Teachers publish grades after homework is graded.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.4,
+                            color: isDark ? Colors.grey[400] : AppTheme.textSecondary,
+                          ),
+                        )
+                      : Column(
+                          children: assessments
+                              .map(
+                                (a) => _GradeRow(
+                                  assessment: a,
+                                  school: school,
+                                ),
+                              )
+                              .toList(),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  ({List<String> labels, List<double> values})? _subjectChartData(
+    List<AssessmentModel> assessments,
+    SchoolAdminProvider school,
+  ) {
+    if (assessments.isEmpty) return null;
+
+    final bySubject = <String, List<double>>{};
+    for (final a in assessments) {
+      final pct = a.percentage;
+      if (pct == null) continue;
+      final name = school.subjectNameForId(a.subjectId) ?? 'Other';
+      bySubject.putIfAbsent(name, () => []).add(pct);
+    }
+    if (bySubject.isEmpty) return null;
+
+    final labels = bySubject.keys.toList()..sort();
+    final values = labels
+        .map((label) {
+          final scores = bySubject[label]!;
+          return scores.reduce((a, b) => a + b) / scores.length;
+        })
+        .toList();
+
+    return (labels: labels.take(4).toList(), values: values.take(4).toList());
+  }
+}
+
+class _HomeworkRow extends StatelessWidget {
+  final AssignmentModel assignment;
+  final SchoolAdminProvider school;
+  final bool isDark;
+
+  const _HomeworkRow({
+    required this.assignment,
+    required this.school,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final subject = school.subjectNameForId(assignment.subjectId) ?? 'Subject';
+    final due = assignment.dueAt;
+    final isOverdue = due != null && due.isBefore(DateTime.now());
+    final dueLabel = due == null
+        ? 'No due date'
+        : isOverdue
+            ? 'Overdue • ${DateFormat('MMM d').format(due)}'
+            : 'Due ${DateFormat('MMM d').format(due)}';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.assignment_outlined,
+            size: 18,
+            color: isOverdue ? Colors.redAccent : AppTheme.primaryBlue,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  assignment.title,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+                Text(subject, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+              ],
+            ),
+          ),
+          Text(
+            dueLabel,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: isOverdue ? Colors.redAccent : AppTheme.softGreen,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GradeRow extends StatelessWidget {
+  final AssessmentModel assessment;
+  final SchoolAdminProvider school;
+
+  const _GradeRow({required this.assessment, required this.school});
+
+  @override
+  Widget build(BuildContext context) {
+    final subject = school.subjectNameForId(assessment.subjectId) ?? 'Subject';
+    final pct = assessment.percentage?.round();
+    final when = assessment.publishedAt ?? assessment.createdAt;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(assessment.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                Text(
+                  '$subject • ${DateFormat('MMM d').format(when)}',
+                  style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          if (pct != null)
+            Text('$pct%', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.softGreen)),
+        ],
+      ),
     );
   }
 }
 
 class _HealthTab extends StatelessWidget {
   final ChildModel child;
-  final List<TimelineEvent> events;
   final bool isDark;
 
-  const _HealthTab({
-    required this.child,
-    required this.events,
-    required this.isDark,
-  });
+  const _HealthTab({required this.child, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
-    final healthEvents = events.where((e) => e.type == TimelineEventType.health).toList();
-
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      physics: const BouncingScrollPhysics(),
-      children: [
-        _SectionCard(
-          isDark: isDark,
-          title: 'Vaccination Status',
-          child: child.vaccinations.isEmpty
-              ? const Text(
-                  'No vaccines logged yet. Update the profile from Add Child.',
-                  style: TextStyle(height: 1.4, color: AppTheme.textSecondary),
-                )
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: child.vaccinations
-                      .map(
-                        (v) => Chip(
-                          label: Text(v, style: const TextStyle(fontSize: 11)),
-                          backgroundColor: AppTheme.softGreen.withValues(alpha: 0.12),
-                          side: BorderSide.none,
-                        ),
-                      )
-                      .toList(),
-                ),
-        ),
-        const SizedBox(height: 14),
-        _SectionCard(
-          isDark: isDark,
-          title: 'Recent Health Events',
-          child: Column(
-            children: healthEvents
-                .map(
-                  (e) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(e.icon, color: AppTheme.softGreen),
-                    title: Text(
-                      e.title,
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                    ),
-                    subtitle: Text(e.description, style: const TextStyle(fontSize: 11)),
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-      ],
+    return Consumer<ChildProvider>(
+      builder: (context, childProvider, _) {
+        ChildModel liveChild = child;
+        for (final c in childProvider.children) {
+          if (c.id == child.id) {
+            liveChild = c;
+            break;
+          }
+        }
+        return ListView(
+          padding: const EdgeInsets.all(20),
+          physics: const BouncingScrollPhysics(),
+          children: [
+            ParentHealthModulePanel(child: liveChild, isDark: isDark),
+          ],
+        );
+      },
     );
   }
 }

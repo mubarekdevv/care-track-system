@@ -55,12 +55,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final success = await authProvider.login(
       _emailController.text.trim(),
-      _passwordController.text.trim(),
+      _passwordController.text,
     );
 
     if (success) {
       if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.roleSelection, (_) => false);
       }
     } else {
       _showErrorSnackbar(authProvider.errorMessage ?? 'Invalid credentials. Please try again.');
@@ -71,7 +71,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final authProvider = Provider.of<AuthProvider>(context);
-
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -119,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Sign in to access your child updates, classrooms, and health records.',
+                            'Sign in to access your child updates, grades, and health records.',
                             style: TextStyle(
                               color: isDark ? Colors.grey[400] : Colors.grey[600],
                               fontSize: 14,
@@ -145,7 +144,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
                           const SizedBox(height: 20),
-
                           AuthTextField(
                             controller: _passwordController,
                             label: 'Password',
@@ -224,7 +222,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
-
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [

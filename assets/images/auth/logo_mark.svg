@@ -1,10 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
-  <rect width="48" height="48" rx="12" fill="url(#logoGrad)"/>
-  <path d="M24 14c-6 0-10 4-10 10 0 8 10 16 10 16s10-8 10-16c0-6-4-10-10-10z" fill="#fff"/>
+  <rect width="48" height="48" rx="14" fill="url(#logoGrad)"/>
+  <path d="M11 27.5c0-7.5 5.8-13.5 13-13.5s13 6 13 13.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+  <path d="M9.5 27.5h29" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M24 12.5v11" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M24 15.5c-3.8 1.8-4.8 5.2-4.8 5.2s3.6-.8 4.8-5.2z" fill="#B8F06A"/>
+  <path d="M24 15.5c3.8 1.8 4.8 5.2 4.8 5.2s-3.6-.8-4.8-5.2z" fill="#7ED321"/>
+  <circle cx="24" cy="10.5" r="2.4" fill="#fff"/>
   <defs>
-    <linearGradient id="logoGrad" x1="8" y1="8" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+    <linearGradient id="logoGrad" x1="8" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">
       <stop stop-color="#4A90E2"/>
-      <stop offset="1" stop-color="#357ABD"/>
+      <stop offset="0.55" stop-color="#3D8BD4"/>
+      <stop offset="1" stop-color="#2E9E6A"/>
     </linearGradient>
   </defs>
 </svg>

@@ -30,11 +30,11 @@ class ImageSources {
   static const String registerChild =
       'https://images.unsplash.com/photo-1544776193-352d25ca82cd?auto=format&fit=crop&w=800&q=80';
 
-  // Auth feature tiles
-  static const String featureParent = '$_picsum/kidcare-feature-parent/480/480.jpg';
-  static const String featureTeacher = '$_picsum/kidcare-feature-teacher/480/480.jpg';
-  static const String featureHealthcare = '$_picsum/kidcare-feature-health/480/480.jpg';
-  static const String featureChild = '$_picsum/kidcare-feature-child/480/480.jpg';
+  // Auth feature tiles (role-specific — matches register heroes)
+  static const String featureParent = registerHero;
+  static const String featureTeacher = registerTeacher;
+  static const String featureHealthcare = registerHealthcare;
+  static const String featureChild = registerChild;
   static const String featureSecure =
       'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=480&q=80';
 }

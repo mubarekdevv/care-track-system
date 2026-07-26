@@ -1,9 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/role_styles.dart';
 import '../../core/theme/app_theme.dart';
+import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/child_gamification_provider.dart';
+import '../../providers/child_provider.dart';
+import '../../providers/school_admin_provider.dart';
+import '../../widgets/dashboard/dashboard_hero_header.dart';
+import '../../widgets/dashboard/dashboard_tab_scaffold.dart';
+import '../../widgets/navigation/kidcare_dashboard_shell.dart';
 import '../../widgets/profile/user_profile_avatar.dart';
+import '../../widgets/settings/appearance_setting.dart';
+import '../../widgets/family/student_parent_link_code_action.dart';
+import '../../widgets/messaging/messages_inbox.dart';
 
 class ChildDashboard extends StatefulWidget {
   const ChildDashboard({super.key});
@@ -19,58 +29,123 @@ class _ChildDashboardState extends State<ChildDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _navIndex,
-        children: [
-          _ChildHomeTab(onOpenTasks: _goToTasks),
-          const _ChildHomeworkTab(),
-          const _ChildRewardsTab(),
-          const _ChildProfileTab(),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _navIndex,
-        onDestinationSelected: (index) => setState(() => _navIndex = index),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.stars_outlined),
-            selectedIcon: Icon(Icons.stars_rounded),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.assignment_outlined),
-            selectedIcon: Icon(Icons.assignment_rounded),
-            label: 'My Tasks',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.emoji_events_outlined),
-            selectedIcon: Icon(Icons.emoji_events_rounded),
-            label: 'My Badges',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.face_outlined),
-            selectedIcon: Icon(Icons.face_rounded),
-            label: 'My Profile',
-          ),
-        ],
-      ),
+    final user = context.watch<AuthProvider>().currentUser;
+    return Stack(
+      children: [
+        const _ChildLiveDataBinder(),
+        KidCareDashboardShell(
+      selectedIndex: _navIndex,
+      onIndexChanged: (index) => setState(() => _navIndex = index),
+      destinations: const [
+        NavigationDestination(
+          icon: Icon(Icons.stars_outlined),
+          selectedIcon: Icon(Icons.stars_rounded),
+          label: 'Home',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.assignment_outlined),
+          selectedIcon: Icon(Icons.assignment_rounded),
+          label: 'My Tasks',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.emoji_events_outlined),
+          selectedIcon: Icon(Icons.emoji_events_rounded),
+          label: 'My Badges',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.chat_bubble_outline_rounded),
+          selectedIcon: Icon(Icons.chat_bubble_rounded),
+          label: 'Messages',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.face_outlined),
+          selectedIcon: Icon(Icons.face_rounded),
+          label: 'My Profile',
+        ),
+      ],
+      children: [
+        _ChildHomeTab(onOpenTasks: _goToTasks, user: user),
+        const _ChildHomeworkTab(),
+        const _ChildRewardsTab(),
+        const _ChildMessagesTab(),
+        const _ChildProfileTab(),
+      ],
+        ),
+      ],
     );
   }
+}
+
+class _ChildLiveDataBinder extends StatefulWidget {
+  const _ChildLiveDataBinder();
+
+  @override
+  State<_ChildLiveDataBinder> createState() => _ChildLiveDataBinderState();
+}
+
+class _ChildLiveDataBinderState extends State<_ChildLiveDataBinder> {
+  String? _bindKey;
+
+  void _syncIfNeeded() {
+    final user = context.read<AuthProvider>().currentUser;
+    final linked = context.read<ChildProvider>().linkedChild;
+    final school = context.read<SchoolAdminProvider>();
+    final linkedId = user?.linkedStudentId;
+    final isLinked = linkedId != null && linkedId.isNotEmpty;
+
+    var classRoomId = linked?.classRoomId;
+    if ((classRoomId == null || classRoomId.isEmpty) &&
+        linked?.gradeLevelId != null &&
+        linked!.gradeLevelId!.isNotEmpty) {
+      classRoomId = school.primaryClassForGrade(linked.gradeLevelId!)?.id;
+    }
+
+    final key =
+        '$isLinked|${linked?.id ?? linkedId}|$classRoomId|${linked?.gradeLevelId}|${school.subjects.length}|${school.classes.length}';
+    if (key == _bindKey) return;
+    _bindKey = key;
+
+    context.read<ChildGamificationProvider>().bindStudentExperience(
+          isAccountLinked: isLinked,
+          studentId: linked?.id ?? linkedId,
+          classRoomId: classRoomId,
+          subjectNameFor: school.subjectNameForId,
+          linkedChild: linked,
+        );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _syncIfNeeded();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }
 
 // ==================== HOME TAB ====================
 class _ChildHomeTab extends StatelessWidget {
   final VoidCallback onOpenTasks;
-
-  const _ChildHomeTab({required this.onOpenTasks});
+  final UserModel? user;
+  const _ChildHomeTab({
+    required this.onOpenTasks,
+    this.user,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
     final game = Provider.of<ChildGamificationProvider>(context);
-    final user = authProvider.currentUser;
+    final linked = context.watch<ChildProvider>().linkedChild;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final status = game.homeworkStatusMessage;
+    final schedule = game.activeSchedule;
+    final displayName = linked?.name.isNotEmpty == true
+        ? linked!.name
+        : (user?.fullName ?? 'Explorer');
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.warmNeutral,
@@ -80,7 +155,8 @@ class _ChildHomeTab extends StatelessWidget {
           slivers: [
             SliverToBoxAdapter(
               child: _PlayfulHeader(
-                name: user?.fullName ?? 'Explorer',
+                user: user,
+                name: displayName,
                 level: game.currentLevel,
                 xp: game.currentXp,
                 xpProgress: game.xpProgress,
@@ -95,18 +171,33 @@ class _ChildHomeTab extends StatelessWidget {
                   children: [
                     const Text(
                       'My Active Quests',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: -0.2),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -0.2),
                     ),
                     if (game.pendingQuestCount > 0)
                       TextButton(
                         onPressed: onOpenTasks,
-                        child: const Text('View all', style: TextStyle(fontWeight: FontWeight.w600)),
+                        child: const Text('View all',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
                       ),
                   ],
                 ),
               ),
             ),
-            SliverToBoxAdapter(child: _QuestStats(rank: game.rankTitle, pending: game.pendingQuestCount, isDark: isDark)),
+            SliverToBoxAdapter(
+                child: _QuestStats(
+                    rank: game.rankTitle,
+                    pending: game.pendingQuestCount,
+                    isDark: isDark)),
+            if (status != null && game.pendingQuestCount == 0)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  child: _HomeworkStatusBanner(message: status, isDark: isDark),
+                ),
+              ),
             if (game.pendingQuestCount > 0)
               SliverToBoxAdapter(
                 child: Padding(
@@ -118,6 +209,13 @@ class _ChildHomeTab extends StatelessWidget {
                   ),
                 ),
               ),
+            if (game.attendanceTodayLabel != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  child: _AttendanceChip(label: game.attendanceTodayLabel!, isDark: isDark),
+                ),
+              ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
@@ -126,18 +224,22 @@ class _ChildHomeTab extends StatelessWidget {
                   children: [
                     const Text(
                       'Today\'s Journey',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: -0.2),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -0.2),
                     ),
-                    if (game.currentScheduleItem != null)
+                    if (game.isScheduleLive)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: const Color(0xFF7ED321).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Text(
-                          'Live now',
-                          style: TextStyle(
+                        child: Text(
+                          game.currentScheduleItem != null ? 'Live now' : 'Your classes',
+                          style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF7ED321),
@@ -148,26 +250,41 @@ class _ChildHomeTab extends StatelessWidget {
                 ),
               ),
             ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final item = ChildGamificationProvider.schedule[index];
-                  final isCurrent = game.currentScheduleItem?.time == item.time;
-                  final isNext = game.nextScheduleItem?.time == item.time;
+            if (schedule.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _HomeworkStatusBanner(
+                    message: game.isScheduleLive
+                        ? 'Your class schedule will appear when teachers are assigned to your grade.'
+                        : 'Link your parent code and enroll in a grade to see your real school day.',
+                    isDark: isDark,
+                  ),
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final item = schedule[index];
+                    final isCurrent = game.currentScheduleItem?.time == item.time &&
+                        game.currentScheduleItem?.title == item.title;
+                    final isNext = game.nextScheduleItem?.time == item.time &&
+                        game.nextScheduleItem?.title == item.title;
 
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                    child: _ScheduleCard(
-                      item: item,
-                      isDark: isDark,
-                      isCurrent: isCurrent,
-                      isNext: isNext,
-                    ),
-                  );
-                },
-                childCount: ChildGamificationProvider.schedule.length,
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                      child: _ScheduleCard(
+                        item: item,
+                        isDark: isDark,
+                        isCurrent: isCurrent,
+                        isNext: isNext,
+                      ),
+                    );
+                  },
+                  childCount: schedule.length,
+                ),
               ),
-            ),
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
         ),
@@ -177,6 +294,7 @@ class _ChildHomeTab extends StatelessWidget {
 }
 
 class _PlayfulHeader extends StatelessWidget {
+  final UserModel? user;
   final String name;
   final int level;
   final int xp;
@@ -184,6 +302,7 @@ class _PlayfulHeader extends StatelessWidget {
   final int badgeCount;
 
   const _PlayfulHeader({
+    this.user,
     required this.name,
     required this.level,
     required this.xp,
@@ -193,101 +312,159 @@ class _PlayfulHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Container(
-        padding: const EdgeInsets.all(22),
+    return DashboardHeroHeader(
+      profileUser: user,
+      gradient: RoleStyles.forRole('Child')['gradient'] as LinearGradient,
+      accentColor: RoleStyles.forRole('Child')['accent'] as Color,
+      subtitle: 'Level $level Explorer',
+      title: name,
+      avatarOnRight: false,
+      showGradientRing: false,
+      margin: const EdgeInsets.all(20),
+      trailing: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF9013FE), Color(0xFF700CB5)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF9013FE).withValues(alpha: 0.3),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          color: Colors.white.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              children: [
-                const UserProfileAvatar(radius: 26, editable: false, showGradientRing: false),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Level $level Explorer',
-                        style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 18),
-                      const SizedBox(width: 6),
-                      Text(
-                        '$badgeCount Badges',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'My Progress (XP)',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  '$xp / ${ChildGamificationProvider.xpPerLevel} XP',
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: xpProgress),
-              duration: const Duration(milliseconds: 700),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, _) {
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: value,
-                    minHeight: 10,
-                    color: Colors.amber,
-                    backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  ),
-                );
-              },
+            const Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              '$badgeCount Badges',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
             ),
           ],
         ),
+      ),
+      footer: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'My Progress (XP)',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                '$xp / ${ChildGamificationProvider.xpPerLevel} XP',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: xpProgress),
+            duration: const Duration(milliseconds: 700),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, _) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: value,
+                  minHeight: 10,
+                  color: Colors.amber,
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AttendanceChip extends StatelessWidget {
+  final String label;
+  final bool isDark;
+
+  const _AttendanceChip({required this.label, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final present = label.toLowerCase().contains('present');
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: (present ? const Color(0xFF7ED321) : Colors.orange)
+            .withValues(alpha: isDark ? 0.15 : 0.1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: (present ? const Color(0xFF7ED321) : Colors.orange).withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            present ? Icons.check_circle_rounded : Icons.schedule_rounded,
+            size: 20,
+            color: present ? const Color(0xFF7ED321) : Colors.orange,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : AppTheme.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeworkStatusBanner extends StatelessWidget {
+  final String message;
+  final bool isDark;
+
+  const _HomeworkStatusBanner({required this.message, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded,
+              size: 20, color: isDark ? Colors.grey[400] : AppTheme.textSecondary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                color: isDark ? Colors.grey[300] : AppTheme.textSecondary,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -298,7 +475,8 @@ class _QuestStats extends StatelessWidget {
   final int pending;
   final bool isDark;
 
-  const _QuestStats({required this.rank, required this.pending, required this.isDark});
+  const _QuestStats(
+      {required this.rank, required this.pending, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -312,18 +490,24 @@ class _QuestStats extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDark ? AppTheme.darkSurface : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
+                border: Border.all(
+                    color:
+                        isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
               ),
               child: Column(
                 children: [
-                  const Text('Pending Quests', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                  const Text('Pending Quests',
+                      style: TextStyle(
+                          fontSize: 11, color: AppTheme.textSecondary)),
                   const SizedBox(height: 6),
                   Text(
                     '$pending',
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: pending > 0 ? const Color(0xFF9013FE) : const Color(0xFF7ED321),
+                      color: pending > 0
+                          ? const Color(0xFF9013FE)
+                          : const Color(0xFF7ED321),
                     ),
                   ),
                 ],
@@ -337,11 +521,15 @@ class _QuestStats extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDark ? AppTheme.darkSurface : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
+                border: Border.all(
+                    color:
+                        isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
               ),
               child: Column(
                 children: [
-                  const Text('Level Rank', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                  const Text('Level Rank',
+                      style: TextStyle(
+                          fontSize: 11, color: AppTheme.textSecondary)),
                   const SizedBox(height: 6),
                   Text(
                     rank,
@@ -369,7 +557,8 @@ class _NextQuestCard extends StatelessWidget {
   final VoidCallback onTap;
   final bool isDark;
 
-  const _NextQuestCard({required this.quest, required this.onTap, required this.isDark});
+  const _NextQuestCard(
+      {required this.quest, required this.onTap, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -394,13 +583,22 @@ class _NextQuestCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Up next', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
-                      Text(quest.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      const Text('Up next',
+                          style: TextStyle(
+                              fontSize: 10, color: AppTheme.textSecondary)),
+                      Text(quest.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 13)),
                     ],
                   ),
                 ),
-                Text('+${quest.xp} XP', style: TextStyle(color: quest.color, fontWeight: FontWeight.bold, fontSize: 11)),
+                Text('+${quest.xp} XP',
+                    style: TextStyle(
+                        color: quest.color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11)),
               ],
             ),
           ),
@@ -437,7 +635,12 @@ class _ScheduleCard extends StatelessWidget {
           width: isCurrent ? 2 : 1,
         ),
         boxShadow: isCurrent
-            ? [BoxShadow(color: item.color.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 4))]
+            ? [
+                BoxShadow(
+                    color: item.color.withValues(alpha: 0.15),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4))
+              ]
             : null,
       ),
       child: Row(
@@ -469,12 +672,17 @@ class _ScheduleCard extends StatelessWidget {
                     ),
                     if (isNext)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: item.color.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text('Up next', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: item.color)),
+                        child: Text('Up next',
+                            style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: item.color)),
                       ),
                   ],
                 ),
@@ -499,39 +707,61 @@ class _ScheduleCard extends StatelessWidget {
 class _ChildHomeworkTab extends StatelessWidget {
   const _ChildHomeworkTab();
 
-  void _completeTask(BuildContext context, ChildQuest quest) {
-    final game = Provider.of<ChildGamificationProvider>(context, listen: false);
+  Future<void> _completeTask(BuildContext context, ChildQuest quest) async {
+    final game = context.read<ChildGamificationProvider>();
+    final user = context.read<AuthProvider>().currentUser;
+    final linked = context.read<ChildProvider>().linkedChild;
+    final studentName = linked?.name.isNotEmpty == true
+        ? linked!.name
+        : (user?.fullName ?? 'Student');
 
-    final unlockedBadge = game.completeQuest(
-      quest.id,
-      onLevelUp: () => _showLevelUpDialog(context, game.currentLevel),
-    );
+    if (game.isSubmittingQuest) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.emoji_events_rounded, color: Colors.amber),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Quest completed! Earned +${quest.xp} XP!',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+    try {
+      final unlockedBadge = await game.completeQuestAsync(
+        questId: quest.id,
+        studentName: studentName,
+        submittedByUserId: user?.uid ?? '',
+        onLevelUp: () => _showLevelUpDialog(context, game.currentLevel),
+      );
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Turned in! +${quest.xp} XP — your teacher can see this.',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
+          backgroundColor: const Color(0xFF7ED321),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
         ),
-        backgroundColor: const Color(0xFF7ED321),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+      );
 
-    if (unlockedBadge != null) {
-      Future.delayed(const Duration(milliseconds: 400), () {
-        if (context.mounted) _showBadgeUnlockDialog(context, unlockedBadge);
-      });
+      if (unlockedBadge != null) {
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (context.mounted) _showBadgeUnlockDialog(context, unlockedBadge);
+        });
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not turn in homework. Check your connection and try again.'),
+        ),
+      );
     }
   }
 
@@ -543,16 +773,22 @@ class _ChildHomeworkTab extends StatelessWidget {
         backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: const Center(
-          child: Text('🎉 LEVEL UP! 🎉', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber, fontSize: 22)),
+          child: Text('🎉 LEVEL UP! 🎉',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.amber,
+                  fontSize: 22)),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('🌟 AMAZING WORK! 🌟', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text('🌟 AMAZING WORK! 🌟',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
             Text('You reached Level $level!', textAlign: TextAlign.center),
             const SizedBox(height: 20),
-            const Icon(Icons.workspace_premium_rounded, size: 72, color: Colors.amber),
+            const Icon(Icons.workspace_premium_rounded,
+                size: 72, color: Colors.amber),
           ],
         ),
         actionsAlignment: MainAxisAlignment.center,
@@ -561,9 +797,12 @@ class _ChildHomeworkTab extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.amber,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
             ),
-            child: const Text('Awesome!', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            child: const Text('Awesome!',
+                style: TextStyle(
+                    color: Colors.black, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -575,17 +814,25 @@ class _ChildHomeworkTab extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('New Badge Unlocked!', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('New Badge Unlocked!',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.emoji_events_rounded, size: 64, color: Colors.amber),
+            const Icon(Icons.emoji_events_rounded,
+                size: 64, color: Colors.amber),
             const SizedBox(height: 12),
-            Text(badgeTitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(badgeTitle,
+                textAlign: TextAlign.center,
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Collect!')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Collect!')),
         ],
       ),
     );
@@ -597,12 +844,51 @@ class _ChildHomeworkTab extends StatelessWidget {
     final game = Provider.of<ChildGamificationProvider>(context);
     final list = game.quests;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.warmNeutral,
-      appBar: AppBar(
-        title: const Text('My Homework Quests', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: false,
-      ),
+    if (game.isHomeworkLoading) {
+      return const DashboardTabScaffold(
+        title: 'My Homework Quests',
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (list.isEmpty) {
+      return DashboardTabScaffold(
+        title: 'My Homework Quests',
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.assignment_outlined,
+                  size: 56,
+                  color: isDark ? Colors.grey[600] : AppTheme.textSecondary,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  game.isLiveHomework ? 'No homework quests yet' : 'Homework not available',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  game.homeworkStatusMessage ??
+                      'Your teachers will post homework here when you are enrolled.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    height: 1.4,
+                    color: isDark ? Colors.grey[400] : AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return DashboardTabScaffold(
+      title: 'My Homework Quests',
       body: list.every((q) => q.completed)
           ? Center(
               child: Padding(
@@ -610,14 +896,20 @@ class _ChildHomeworkTab extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.celebration_rounded, size: 64, color: Color(0xFF7ED321)),
+                    const Icon(Icons.celebration_rounded,
+                        size: 64, color: Color(0xFF7ED321)),
                     const SizedBox(height: 16),
-                    const Text('All quests complete!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    const Text('All quests complete!',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 18)),
                     const SizedBox(height: 8),
                     Text(
                       'You earned ${game.unlockedBadgeCount} badges. Check your vault!',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: isDark ? Colors.grey[400] : AppTheme.textSecondary),
+                      style: TextStyle(
+                          color: isDark
+                              ? Colors.grey[400]
+                              : AppTheme.textSecondary),
                     ),
                   ],
                 ),
@@ -630,7 +922,10 @@ class _ChildHomeworkTab extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final task = list[index];
-                return _QuestTile(task: task, isDark: isDark, onClaim: () => _completeTask(context, task));
+                return _QuestTile(
+                    task: task,
+                    isDark: isDark,
+                    onClaim: () => _completeTask(context, task));
               },
             ),
     );
@@ -640,9 +935,10 @@ class _ChildHomeworkTab extends StatelessWidget {
 class _QuestTile extends StatefulWidget {
   final ChildQuest task;
   final bool isDark;
-  final VoidCallback onClaim;
+  final Future<void> Function() onClaim;
 
-  const _QuestTile({required this.task, required this.isDark, required this.onClaim});
+  const _QuestTile(
+      {required this.task, required this.isDark, required this.onClaim});
 
   @override
   State<_QuestTile> createState() => _QuestTileState();
@@ -656,6 +952,7 @@ class _QuestTileState extends State<_QuestTile> {
     final task = widget.task;
     final completed = task.completed;
     final accent = task.color;
+    final submitting = context.watch<ChildGamificationProvider>().isSubmittingQuest;
 
     return AnimatedScale(
       scale: _pressed ? 0.98 : 1.0,
@@ -678,14 +975,18 @@ class _QuestTileState extends State<_QuestTile> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: accent.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       task.subject,
-                      style: TextStyle(color: accent, fontWeight: FontWeight.bold, fontSize: 10),
+                      style: TextStyle(
+                          color: accent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -695,21 +996,36 @@ class _QuestTileState extends State<_QuestTile> {
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                       decoration: completed ? TextDecoration.lineThrough : null,
-                      color: completed ? Colors.grey : (widget.isDark ? Colors.white : AppTheme.textPrimary),
+                      color: completed
+                          ? Colors.grey
+                          : (widget.isDark
+                              ? Colors.white
+                              : AppTheme.textPrimary),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.calendar_month_rounded, size: 12,
-                          color: widget.isDark ? Colors.grey[400] : AppTheme.textSecondary),
+                      Icon(Icons.calendar_month_rounded,
+                          size: 12,
+                          color: widget.isDark
+                              ? Colors.grey[400]
+                              : AppTheme.textSecondary),
                       const SizedBox(width: 4),
                       Text(task.dueDate,
-                          style: TextStyle(fontSize: 10, color: widget.isDark ? Colors.grey[400] : AppTheme.textSecondary)),
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: widget.isDark
+                                  ? Colors.grey[400]
+                                  : AppTheme.textSecondary)),
                       const SizedBox(width: 14),
-                      const Icon(Icons.bolt_rounded, size: 12, color: Colors.amber),
+                      const Icon(Icons.bolt_rounded,
+                          size: 12, color: Colors.amber),
                       Text('+${task.xp} XP',
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.amber)),
+                          style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber)),
                     ],
                   ),
                 ],
@@ -727,13 +1043,28 @@ class _QuestTileState extends State<_QuestTile> {
                 onTapUp: (_) => setState(() => _pressed = false),
                 onTapCancel: () => setState(() => _pressed = false),
                 child: ElevatedButton(
-                  onPressed: widget.onClaim,
+                  onPressed: submitting ? null : () => widget.onClaim(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
                   ),
-                  child: const Text('Claim', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                  child: submitting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Turn in',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12)),
                 ),
               ),
           ],
@@ -753,37 +1084,67 @@ class _ChildRewardsTab extends StatelessWidget {
     final game = Provider.of<ChildGamificationProvider>(context);
     final badges = game.badges;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.warmNeutral,
-      appBar: AppBar(
-        title: const Text('My Vault Badges', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: false,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: Text(
-                '${game.unlockedBadgeCount}/${badges.length}',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber),
+    return DashboardTabScaffold(
+      title: 'My Vault Badges',
+      trailingActions: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.amber.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            '${game.unlockedBadgeCount}/${badges.length}',
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber),
+          ),
+        ),
+      ],
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark ? AppTheme.darkSurface : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder,
+                  ),
+                ),
+                child: Text(
+                  'Badges unlock when you turn in homework: Science Explorer (science task), '
+                  'Math Whiz (3 tasks), Fast Learner (all tasks). Progress saves to your school profile.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.45,
+                    color: isDark ? Colors.grey[300] : AppTheme.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.all(20),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+                childAspectRatio: 0.88,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final badge = badges[index];
+                  return _BadgeCard(badge: badge, isDark: isDark);
+                },
+                childCount: badges.length,
               ),
             ),
           ),
         ],
-      ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(20),
-        physics: const BouncingScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 14,
-          crossAxisSpacing: 14,
-          childAspectRatio: 0.88,
-        ),
-        itemCount: badges.length,
-        itemBuilder: (context, index) {
-          final badge = badges[index];
-          return _BadgeCard(badge: badge, isDark: isDark);
-        },
       ),
     );
   }
@@ -808,10 +1169,17 @@ class _BadgeCard extends StatelessWidget {
           color: isDark ? AppTheme.darkSurface : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: unlocked ? accent.withValues(alpha: 0.3) : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+            color: unlocked
+                ? accent.withValues(alpha: 0.3)
+                : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
           ),
           boxShadow: unlocked
-              ? [BoxShadow(color: accent.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 4))]
+              ? [
+                  BoxShadow(
+                      color: accent.withValues(alpha: 0.08),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4))
+                ]
               : null,
         ),
         child: Column(
@@ -820,10 +1188,13 @@ class _BadgeCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: unlocked ? accent.withValues(alpha: 0.12) : Colors.grey.withValues(alpha: 0.1),
+                color: unlocked
+                    ? accent.withValues(alpha: 0.12)
+                    : Colors.grey.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(badge.icon, color: unlocked ? accent : Colors.grey, size: 32),
+              child: Icon(badge.icon,
+                  color: unlocked ? accent : Colors.grey, size: 32),
             ),
             const SizedBox(height: 10),
             Text(
@@ -834,7 +1205,9 @@ class _BadgeCard extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
-                color: unlocked ? (isDark ? Colors.white : AppTheme.textPrimary) : Colors.grey,
+                color: unlocked
+                    ? (isDark ? Colors.white : AppTheme.textPrimary)
+                    : Colors.grey,
               ),
             ),
             const SizedBox(height: 4),
@@ -843,15 +1216,31 @@ class _BadgeCard extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 9, color: isDark ? Colors.grey[400] : AppTheme.textSecondary),
+              style: TextStyle(
+                  fontSize: 9,
+                  color: isDark ? Colors.grey[400] : AppTheme.textSecondary),
             ),
             if (!unlocked) ...[
               const SizedBox(height: 6),
-              const Icon(Icons.lock_outline_rounded, size: 14, color: Colors.grey),
+              const Icon(Icons.lock_outline_rounded,
+                  size: 14, color: Colors.grey),
             ],
           ],
         ),
       ),
+    );
+  }
+}
+
+// ==================== MESSAGES TAB ====================
+class _ChildMessagesTab extends StatelessWidget {
+  const _ChildMessagesTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return const MessagesInbox(
+      title: 'Clinic Messages',
+      showStartConversation: false,
     );
   }
 }
@@ -866,9 +1255,8 @@ class _ChildProfileTab extends StatelessWidget {
     final game = Provider.of<ChildGamificationProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.warmNeutral,
-      appBar: AppBar(title: const Text('My Profile')),
+    return DashboardTabScaffold(
+      title: 'My Profile',
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -876,9 +1264,10 @@ class _ChildProfileTab extends StatelessWidget {
           Center(child: UserProfileAvatar(radius: 44, user: user)),
           const SizedBox(height: 8),
           Text(
-            'Tap your photo to update',
+            'Tap your photo to update (shown to your parent too)',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary.withValues(alpha: 0.8)),
+            style: TextStyle(
+                fontSize: 12, color: AppTheme.textSecondary.withValues(alpha: 0.8)),
           ),
           const SizedBox(height: 16),
           Text(
@@ -894,7 +1283,8 @@ class _ChildProfileTab extends StatelessWidget {
           const SizedBox(height: 14),
           Center(
             child: Chip(
-              label: Text(user?.role ?? 'Child', style: const TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(user?.role ?? 'Child',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
               backgroundColor: const Color(0xFF9013FE).withValues(alpha: 0.12),
               side: BorderSide.none,
             ),
@@ -905,7 +1295,8 @@ class _ChildProfileTab extends StatelessWidget {
             decoration: BoxDecoration(
               color: isDark ? AppTheme.darkSurface : Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
+              border: Border.all(
+                  color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
             ),
             child: Column(
               children: [
@@ -913,25 +1304,35 @@ class _ChildProfileTab extends StatelessWidget {
                 const Divider(),
                 _ProfileStatRow(label: 'Total XP', value: '${game.currentXp}'),
                 const Divider(),
-                _ProfileStatRow(label: 'Badges', value: '${game.unlockedBadgeCount}'),
+                _ProfileStatRow(
+                    label: 'Badges', value: '${game.unlockedBadgeCount}'),
                 const Divider(),
-                const _ProfileStatRow(label: 'Assigned Class', value: 'Grade 3-A'),
+                const _ProfileStatRow(
+                    label: 'Assigned Class', value: 'Grade 3-A'),
               ],
             ),
           ),
+          const SizedBox(height: 16),
+          const StudentParentLinkCodeTile(),
+          const SizedBox(height: 8),
+          const AppearanceSetting(),
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
             height: 52,
             child: OutlinedButton.icon(
               onPressed: () async {
-                await Provider.of<AuthProvider>(context, listen: false).logout();
+                await Provider.of<AuthProvider>(context, listen: false)
+                    .logout();
               },
               icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-              label: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent)),
+              label: const Text('Sign Out',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.redAccent)),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.redAccent),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
               ),
             ),
           ),
@@ -954,8 +1355,12 @@ class _ProfileStatRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
-          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+          Text(label,
+              style:
+                  const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+          Text(value,
+              style:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
         ],
       ),
     );

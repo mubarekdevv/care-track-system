@@ -1,10 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
+import '../../core/academic/enrollment_display.dart';
+import '../../core/config/school_config.dart';
+import '../../core/constants/role_styles.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/school_admin_provider.dart';
+import '../../providers/teacher_overview_provider.dart';
+import '../../providers/teacher_attendance_provider.dart';
+import '../../widgets/dashboard/dashboard_hero_header.dart';
+import '../../widgets/dashboard/dashboard_tab_scaffold.dart';
+import '../../widgets/navigation/kidcare_dashboard_shell.dart';
 import '../../widgets/profile/user_profile_avatar.dart';
-import '../../widgets/teacher/grade_entry_sheet.dart';
+import '../../widgets/settings/appearance_setting.dart';
+import '../auth/teacher_profile_setup_screen.dart';
+import '../../widgets/messaging/messages_inbox.dart';
+import '../../widgets/messaging/teacher_compose_sheet.dart';
+import '../../core/constants/routes.dart';
+import '../../providers/messaging_provider.dart';
+import 'teacher_homework_tab.dart';
+import '../../models/student_model.dart';
+import '../../models/user_model.dart';
+import '../../widgets/common/education_empty_state.dart';
+import '../../widgets/care/student_care_sheet.dart';
+import '../../widgets/staff/staff_profile_incomplete_banner.dart';
 
 class TeacherDashboard extends StatefulWidget {
   const TeacherDashboard({super.key});
@@ -18,216 +37,217 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _navIndex,
-        children: const [
-          _TeacherHomeTab(),
-          _TeacherAttendanceTab(),
-          _TeacherHomeworkTab(),
-          _TeacherMessagesTab(),
-          _TeacherProfileTab(),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _navIndex,
-        onDestinationSelected: (index) => setState(() => _navIndex = index),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard_rounded),
-            label: 'Overview',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.people_outline_rounded),
-            selectedIcon: Icon(Icons.people_rounded),
-            label: 'Attendance',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.assignment_outlined),
-            selectedIcon: Icon(Icons.assignment_rounded),
-            label: 'Homework',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline_rounded),
-            selectedIcon: Icon(Icons.chat_bubble_rounded),
-            label: 'Messages',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
-        ],
-      ),
+    final user = context.watch<AuthProvider>().currentUser;
+    return KidCareDashboardShell(
+      selectedIndex: _navIndex,
+      onIndexChanged: (index) => setState(() => _navIndex = index),
+      destinations: const [
+        NavigationDestination(
+          icon: Icon(Icons.dashboard_outlined),
+          selectedIcon: Icon(Icons.dashboard_rounded),
+          label: 'Overview',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.groups_outlined),
+          selectedIcon: Icon(Icons.groups_rounded),
+          label: 'Students',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.people_outline_rounded),
+          selectedIcon: Icon(Icons.people_rounded),
+          label: 'Attendance',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.assignment_outlined),
+          selectedIcon: Icon(Icons.assignment_rounded),
+          label: 'Homework',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.chat_bubble_outline_rounded),
+          selectedIcon: Icon(Icons.chat_bubble_rounded),
+          label: 'Messages',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.person_outline_rounded),
+          selectedIcon: Icon(Icons.person_rounded),
+          label: 'Profile',
+        ),
+      ],
+      children: [
+        _TeacherHomeTab(
+          user: user,
+          onQuickAction: (index) => setState(() => _navIndex = index),
+        ),
+        const _TeacherStudentsTab(),
+        const _TeacherAttendanceTab(),
+        const TeacherHomeworkTab(),
+        const _TeacherMessagesTab(),
+        const _TeacherProfileTab(),
+      ],
     );
   }
 }
 
 // ==================== OVERVIEW TAB ====================
 class _TeacherHomeTab extends StatelessWidget {
-  const _TeacherHomeTab();
+  final UserModel? user;
+  final ValueChanged<int> onQuickAction;
+
+  const _TeacherHomeTab({
+    this.user,
+    required this.onQuickAction,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.currentUser;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final overview = context.watch<TeacherOverviewProvider>();
+    final auth = context.watch<AuthProvider>();
+    final schoolName =
+        context.watch<SchoolAdminProvider>().school?.name ?? 'Your school';
+    final accent = RoleStyles.forRole('Teacher')['accent'] as Color;
+    final profileIncomplete = !auth.isTeacherProfileComplete;
 
     return Scaffold(
       backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.warmNeutral,
       body: SafeArea(
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: _buildWelcomeHeader(context, user?.fullName ?? 'Educator', isDark),
-            ),
-            SliverToBoxAdapter(
-              child: _buildQuickStats(isDark),
-            ),
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
-                child: Text(
-                  'Today\'s Class Schedule',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final list = [
-                    ('08:30 AM', 'Mathematics Basics', 'Grade 3-A', Icons.functions_rounded, const Color(0xFF4A90E2)),
-                    ('10:00 AM', 'English Grammar', 'Grade 3-A', Icons.menu_book_rounded, const Color(0xFF7ED321)),
-                    ('11:30 AM', 'Science & Environment', 'Grade 3-A', Icons.biotech_rounded, const Color(0xFF9013FE)),
-                    ('01:30 PM', 'Creative Arts', 'Grade 3-A', Icons.palette_rounded, const Color(0xFFE2894A)),
-                  ];
-                  final item = list[index];
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                    child: _ClassScheduleCard(
-                      time: item.$1,
-                      title: item.$2,
-                      grade: item.$3,
-                      icon: item.$4,
-                      accentColor: item.$5,
-                      isDark: isDark,
+        child: overview.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: DashboardHeroHeader(
+                      profileUser: user,
+                      gradient: RoleStyles.forRole('Teacher')['gradient'] as LinearGradient,
+                      accentColor: accent,
+                      subtitle: schoolName,
+                      title: 'Hello, ${user?.fullName ?? 'Educator'}',
+                      badgeText: overview.badgeText,
                     ),
-                  );
-                },
-                childCount: 4,
-              ),
-            ),
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 16, 20, 10),
-                child: Text(
-                  'Recent Active Tasks',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                child: Column(
-                  children: [
-                    _TaskTile(
-                      title: 'Grading Science Homework',
-                      subtitle: '18 of 24 sheets submitted',
-                      progress: 0.75,
-                      accent: const Color(0xFF9013FE),
-                      isDark: isDark,
-                    ),
-                    const SizedBox(height: 12),
-                    _TaskTile(
-                      title: 'Weekly Attendance Report',
-                      subtitle: 'Needs review and validation',
-                      progress: 0.90,
-                      accent: const Color(0xFF7ED321),
-                      isDark: isDark,
-                    ),
-                  ],
-                ),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWelcomeHeader(BuildContext context, String name, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF7ED321), Color(0xFF5CA216)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF7ED321).withValues(alpha: 0.25),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Teacher Center',
-                        style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Hello, $name',
-                        style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                    ],
                   ),
-                ),
-                const UserProfileAvatar(radius: 28, editable: false, showGradientRing: true),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(12),
+                  if (profileIncomplete)
+                    SliverToBoxAdapter(
+                      child: StaffProfileIncompleteBanner(
+                        accentColor: accent,
+                        title: 'Finish your teaching profile',
+                        message:
+                            'Add the grade levels and subjects you teach so your school '
+                            'can assign classes and show your student roster.',
+                        actionLabel: 'Set up grades & subjects',
+                        onAction: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const TeacherProfileSetupScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  SliverToBoxAdapter(
+                    child: _buildQuickStats(isDark, overview),
+                  ),
+                  SliverToBoxAdapter(
+                    child: _TeacherQuickActions(
+                      isDark: isDark,
+                      rosterCount: overview.rosterCount,
+                      onQuickAction: onQuickAction,
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                      child: Text(
+                        'My teaching assignments',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : AppTheme.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (overview.slots.isEmpty)
+                    const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: EducationEmptyState(
+                        icon: Icons.link_off_rounded,
+                        title: 'Not assigned to a grade yet',
+                        message: SchoolConfig.gradeOnlyEnrollment
+                            ? 'After you register as Teacher, ask your admin to open '
+                                'Admin → Staff tab, link your account to the school, '
+                                'then assign you to a grade + subject (e.g. Grade 1 · Math).'
+                            : 'After you register as Teacher, ask your admin to open '
+                                'Admin → Staff tab, link your account to the school, '
+                                'then assign you to a section + subject (e.g. Grade 1-A · Math).',
+                      ),
+                    )
+                  else
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final slot = overview.slots[index];
+                          final count = overview.studentCountForClass(slot.classRoomId);
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                            child: _ClassScheduleCard(
+                              time: count == 0
+                                  ? 'No students in this grade yet'
+                                  : '$count student${count == 1 ? '' : 's'}',
+                              title: slot.subjectName,
+                              grade: SchoolConfig.gradeOnlyEnrollment
+                                  ? slot.gradeName
+                                  : EnrollmentDisplay.teacherSlotLine(
+                                      slot.gradeName,
+                                      slot.className,
+                                    ),
+                              icon: slot.icon,
+                              accentColor: slot.accentColor,
+                              isDark: isDark,
+                            ),
+                          );
+                        },
+                        childCount: overview.slots.length,
+                      ),
+                    ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                      child: _HonestNextStepsCard(
+                        rosterCount: overview.rosterCount,
+                        isDark: isDark,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              child: const Text(
-                'Class Grade: 3-A • Classroom 104',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _buildQuickStats(bool isDark) {
+  Widget _buildQuickStats(bool isDark, TeacherOverviewProvider overview) {
     final stats = [
-      ('Present', '92%', 'Attendance today', const Color(0xFF7ED321), Icons.people_rounded),
-      ('Homework', '4 Active', 'Due this week', const Color(0xFF4A90E2), Icons.assignment_rounded),
-      ('Alerts', '2 Urgent', 'Parent inquiries', const Color(0xFFE2894A), Icons.warning_amber_rounded),
+      (
+        'Students',
+        '${overview.rosterCount}',
+        'On your roster',
+        const Color(0xFF7ED321),
+        Icons.people_rounded
+      ),
+      (
+        SchoolConfig.gradeOnlyEnrollment ? 'Grades' : 'Classes',
+        '${overview.slots.length}',
+        'Teaching slots',
+        const Color(0xFF4A90E2),
+        Icons.class_rounded
+      ),
+      (
+        'School',
+        overview.slots.isEmpty ? '—' : overview.slots.first.gradeName,
+        'Primary assignment',
+        const Color(0xFFE2894A),
+        Icons.school_rounded
+      ),
     ];
 
     return SizedBox(
@@ -277,6 +297,71 @@ class _TeacherHomeTab extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _TeacherQuickActions extends StatelessWidget {
+  final bool isDark;
+  final int rosterCount;
+  final ValueChanged<int> onQuickAction;
+
+  const _TeacherQuickActions({
+    required this.isDark,
+    required this.rosterCount,
+    required this.onQuickAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = [
+      (Icons.groups_rounded, 'My students', 1),
+      (Icons.how_to_reg_rounded, 'Attendance', 2),
+      (Icons.assignment_rounded, 'Homework', 3),
+      (Icons.chat_rounded, 'Messages', 4),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Quick actions',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            rosterCount > 0
+                ? 'Track $rosterCount student${rosterCount == 1 ? '' : 's'}, mark attendance, publish work, and message families.'
+                : 'Once students enroll, use these tools every day.',
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? Colors.grey[400] : AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: actions.map((a) {
+              return ActionChip(
+                avatar: Icon(a.$1, size: 18, color: const Color(0xFF7ED321)),
+                label: Text(a.$2),
+                onPressed: () => onQuickAction(a.$3),
+                backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
+                side: BorderSide(
+                  color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
@@ -420,6 +505,189 @@ class _TaskTile extends StatelessWidget {
   }
 }
 
+// ==================== STUDENTS TAB ====================
+class _TeacherStudentsTab extends StatefulWidget {
+  const _TeacherStudentsTab();
+
+  @override
+  State<_TeacherStudentsTab> createState() => _TeacherStudentsTabState();
+}
+
+class _TeacherStudentsTabState extends State<_TeacherStudentsTab> {
+  String _searchQuery = '';
+
+  Future<void> _messageParent(StudentModel student) async {
+    final teacher = context.read<AuthProvider>().currentUser;
+    if (teacher == null) return;
+
+    final parent = await context.read<MessagingProvider>().parentContactsFromRoster([student]);
+    if (!mounted || parent.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not find parent contact for this student.')),
+      );
+      return;
+    }
+
+    final thread = await context.read<MessagingProvider>().ensureTeacherToParentThread(
+          teacher: teacher,
+          contact: parent.first,
+        );
+    if (!mounted) return;
+    if (thread == null) {
+      final err = context.read<MessagingProvider>().errorMessage;
+      if (err != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      }
+      return;
+    }
+    AppRoutes.push(context, AppRoutes.chat, arguments: thread);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final attendance = context.watch<TeacherAttendanceProvider>();
+    final overview = context.watch<TeacherOverviewProvider>();
+    final schoolAdmin = context.watch<SchoolAdminProvider>();
+
+    if (attendance.isLoading && overview.isLoading) {
+      return const DashboardTabScaffold(
+        title: 'My Students',
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final roster = overview.roster.isNotEmpty ? overview.roster : attendance.roster;
+    final q = _searchQuery.trim().toLowerCase();
+    final list = q.isEmpty
+        ? roster
+        : roster.where((s) => s.fullName.toLowerCase().contains(q)).toList();
+
+    if (roster.isEmpty) {
+      final loadError = overview.error ?? attendance.error;
+      return DashboardTabScaffold(
+        title: 'My Students',
+        body: EducationEmptyState(
+          icon: overview.slots.isEmpty ? Icons.link_off_rounded : Icons.groups_outlined,
+          title: overview.slots.isEmpty
+              ? 'Waiting for admin assignment'
+              : 'No students on your roster yet',
+          message: loadError != null
+              ? (loadError.contains('permission-denied')
+                  ? 'Firestore blocked reading students. Deploy the latest rules: '
+                      'run "firebase deploy --only firestore:rules" in the project folder, '
+                      'then restart the app.\n\n$loadError'
+                  : 'Could not load roster: $loadError')
+              : overview.slots.isEmpty
+                  ? 'Ask admin to assign you in Admin → Staff tab after you register as Teacher.'
+                  : 'Students appear here after parents enroll children in your assigned grade.',
+        ),
+      );
+    }
+
+    return DashboardTabScaffold(
+      title: 'My Students',
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => TeacherComposeSheet.show(context),
+        icon: const Icon(Icons.chat_rounded),
+        label: const Text('Message parent'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search students...',
+                prefixIcon: const Icon(Icons.search_rounded),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                filled: true,
+                fillColor: isDark ? AppTheme.darkSurface : Colors.white,
+              ),
+              onChanged: (v) => setState(() => _searchQuery = v),
+            ),
+          ),
+          Expanded(
+            child: list.isEmpty
+                ? const Center(child: Text('No students match your search.'))
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 88),
+                    itemCount: list.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final student = list[index];
+                      final gradeLabel = EnrollmentDisplay.classOrGradeLabel(
+                        schoolAdmin,
+                        student.classRoomId,
+                        gradeLevelId: student.gradeLevelId,
+                      );
+                      final present = attendance.isPresent(student.id);
+                      return Material(
+                        color: isDark ? AppTheme.darkSurface : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        child: ListTile(
+                          onTap: () => StudentCareSheet.show(
+                            context,
+                            student: student,
+                            accentColor: const Color(0xFF7ED321),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(
+                              color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder,
+                            ),
+                          ),
+                          leading: CircleAvatar(
+                            backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.12),
+                            child: Text(
+                              student.fullName.isNotEmpty
+                                  ? student.fullName[0].toUpperCase()
+                                  : '?',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryBlue,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            student.fullName,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            gradeLabel,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Chip(
+                                label: Text(
+                                  present ? 'Present' : 'Absent',
+                                  style: const TextStyle(fontSize: 10),
+                                ),
+                                backgroundColor: present
+                                    ? Colors.green.withValues(alpha: 0.12)
+                                    : Colors.orange.withValues(alpha: 0.12),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              IconButton(
+                                tooltip: 'Message parent',
+                                icon: const Icon(Icons.chat_bubble_outline_rounded),
+                                onPressed: () => _messageParent(student),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ==================== ATTENDANCE TAB ====================
 class _TeacherAttendanceTab extends StatefulWidget {
   const _TeacherAttendanceTab();
@@ -429,714 +697,367 @@ class _TeacherAttendanceTab extends StatefulWidget {
 }
 
 class _TeacherAttendanceTabState extends State<_TeacherAttendanceTab> {
-  final List<Map<String, dynamic>> _students = [
-    {'name': 'Emma Watson', 'present': true, 'age': 9, 'code': 'S101'},
-    {'name': 'Liam Neeson', 'present': true, 'age': 8, 'code': 'S102'},
-    {'name': 'Olivia Rodrigo', 'present': false, 'age': 9, 'code': 'S103'},
-    {'name': 'Noah Centineo', 'present': true, 'age': 9, 'code': 'S104'},
-    {'name': 'Sophia Loren', 'present': true, 'age': 8, 'code': 'S105'},
-    {'name': 'Jackson Pollock', 'present': true, 'age': 9, 'code': 'S106'},
-    {'name': 'Ava DuVernay', 'present': false, 'age': 8, 'code': 'S107'},
-    {'name': 'Lucas Hedges', 'present': true, 'age': 9, 'code': 'S108'},
-  ];
-
   String _searchQuery = '';
+  String? _classRoomFilter;
 
-  List<Map<String, dynamic>> get _filteredStudents {
-    if (_searchQuery.trim().isEmpty) return _students;
-    return _students
-        .where((s) => s['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase()))
+  List<StudentModel> _filter(List<StudentModel> students, SchoolAdminProvider admin) {
+    var list = students;
+    if (_classRoomFilter != null && _classRoomFilter!.isNotEmpty) {
+      if (SchoolConfig.gradeOnlyEnrollment) {
+        final gradeId = admin.gradeLevelIdForClassRoom(_classRoomFilter!);
+        if (gradeId != null && gradeId.isNotEmpty) {
+          list = list.where((s) => s.gradeLevelId == gradeId).toList();
+        }
+      } else {
+        list = list.where((s) => s.classRoomId == _classRoomFilter).toList();
+      }
+    }
+    if (_searchQuery.trim().isEmpty) return list;
+    final q = _searchQuery.toLowerCase();
+    return list
+        .where((s) => s.fullName.toLowerCase().contains(q))
         .toList();
   }
 
-  int get _presentCount => _students.where((s) => s['present'] == true).length;
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final list = _filteredStudents;
+    final teacherId = context.watch<AuthProvider>().currentUser?.uid;
+    final attendance = context.watch<TeacherAttendanceProvider>();
+    final overview = context.watch<TeacherOverviewProvider>();
+    final schoolAdmin = context.watch<SchoolAdminProvider>();
 
-    return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.warmNeutral,
-      appBar: AppBar(
-        title: const Text('Attendance Registry', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: false,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppTheme.darkSurface : Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Today\'s Ratio', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                              const SizedBox(height: 4),
-                              Text(
-                                '$_presentCount / ${_students.length} Present',
-                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF7ED321).withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${((_presentCount / _students.length) * 100).toInt()}% Rate',
-                            style: const TextStyle(
-                              color: Color(0xFF7ED321),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    onChanged: (val) => setState(() => _searchQuery = val),
-                    decoration: InputDecoration(
-                      hintText: 'Search students...',
-                      prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.textSecondary),
-                      filled: true,
-                      fillColor: isDark ? AppTheme.darkSurface : Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: list.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No students found.',
-                        style: TextStyle(color: isDark ? Colors.grey[400] : AppTheme.textSecondary),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: list.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final student = list[index];
-                        final isPresent = student['present'] as bool;
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppTheme.darkSurface : Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isPresent
-                                  ? const Color(0xFF7ED321).withValues(alpha: 0.3)
-                                  : (isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 22,
-                                backgroundColor: isPresent
-                                    ? const Color(0xFF7ED321).withValues(alpha: 0.12)
-                                    : Colors.redAccent.withValues(alpha: 0.1),
-                                child: Text(
-                                  student['name'].toString()[0],
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: isPresent ? const Color(0xFF7ED321) : Colors.redAccent,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      student['name'].toString(),
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                    ),
-                                    Text(
-                                      'ID: ${student['code']} • ${student['age']} years old',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: isDark ? Colors.grey[400] : AppTheme.textSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Switch(
-                                value: isPresent,
-                                activeThumbColor: const Color(0xFF7ED321),
-                                activeTrackColor: const Color(0xFF7ED321).withValues(alpha: 0.2),
-                                onChanged: (value) {
-                                  setState(() {
-                                    student['present'] = value;
-                                  });
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('${student['name']} marked ${value ? 'Present' : 'Absent'}'),
-                                      duration: const Duration(seconds: 1),
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                      margin: const EdgeInsets.all(12),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
+    if (teacherId == null) {
+      return const DashboardTabScaffold(
+        title: 'Attendance Registry',
+        body: Center(child: Text('Please sign in again.')),
+      );
+    }
+
+    if (attendance.isLoading && overview.isLoading) {
+      return const DashboardTabScaffold(
+        title: 'Attendance Registry',
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final roster = overview.roster.isNotEmpty ? overview.roster : attendance.roster;
+    final list = _filter(roster, schoolAdmin);
+    final presentCount =
+        list.where((s) => attendance.isPresent(s.id)).length;
+    final rate = list.isEmpty
+        ? 0
+        : ((presentCount / list.length) * 100).round();
+
+    if (roster.isEmpty) {
+      return DashboardTabScaffold(
+        title: 'Attendance Registry',
+        body: EducationEmptyState(
+          icon: overview.slots.isEmpty ? Icons.link_off_rounded : Icons.groups_outlined,
+          title: overview.slots.isEmpty
+              ? 'Waiting for admin assignment'
+              : 'No students on your roster yet',
+          message: overview.slots.isEmpty
+              ? 'Ask admin to assign you in Admin → Staff tab after you register as Teacher.'
+              : 'Students appear here after parents enroll children in your assigned grade '
+                  '(${overview.slots.map((s) => SchoolConfig.gradeOnlyEnrollment ? s.gradeName : EnrollmentDisplay.teacherSlotLine(s.gradeName, s.className)).toSet().join(', ')}).',
         ),
-      ),
-    );
-  }
-}
+      );
+    }
 
-// ==================== HOMEWORK TAB ====================
-class _TeacherHomeworkTab extends StatefulWidget {
-  const _TeacherHomeworkTab();
-
-  @override
-  State<_TeacherHomeworkTab> createState() => _TeacherHomeworkTabState();
-}
-
-class _TeacherHomeworkTabState extends State<_TeacherHomeworkTab> {
-  final List<Map<String, dynamic>> _homeworks = [
-    {
-      'title': 'Math: Fractions & Divisions',
-      'subject': 'Mathematics',
-      'dueDate': 'May 29, 2026',
-      'status': 'Active',
-      'grade': 'Grade 3-A',
-      'submissions': '18 / 24'
-    },
-    {
-      'title': 'English Grammar: Verb Tenses',
-      'subject': 'English Language',
-      'dueDate': 'May 30, 2026',
-      'status': 'Active',
-      'grade': 'Grade 3-A',
-      'submissions': '12 / 24'
-    },
-    {
-      'title': 'Science: Planet Earth Project',
-      'subject': 'Natural Sciences',
-      'dueDate': 'June 02, 2026',
-      'status': 'Active',
-      'grade': 'Grade 3-A',
-      'submissions': '0 / 24'
-    },
-  ];
-
-  final _titleController = TextEditingController();
-  String _selectedSubject = 'Mathematics';
-  DateTime? _dueDate;
-
-  void _showAddAssignmentSheet() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    _titleController.clear();
-    _dueDate = null;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            return Padding(
-              padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Create Assignment',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close_rounded),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Assignment Title', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _titleController,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Science: Solar System Essay',
-                      filled: true,
-                      fillColor: isDark ? AppTheme.darkBackground : const Color(0xFFF9FAFB),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Subject', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedSubject,
-                    dropdownColor: isDark ? AppTheme.darkSurface : Colors.white,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: isDark ? AppTheme.darkBackground : const Color(0xFFF9FAFB),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    items: ['Mathematics', 'English Language', 'Natural Sciences', 'Creative Arts']
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setSheetState(() => _selectedSubject = val);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Due Date', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                  const SizedBox(height: 6),
-                  InkWell(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now().add(const Duration(days: 1)),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 90)),
-                      );
-                      if (picked != null) {
-                        setSheetState(() => _dueDate = picked);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    return DashboardTabScaffold(
+      title: 'Attendance Registry',
+      body: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                       decoration: BoxDecoration(
-                        color: isDark ? AppTheme.darkBackground : const Color(0xFFF9FAFB),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade400),
+                        color: isDark ? AppTheme.darkSurface : Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                            color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.calendar_month_rounded, color: isDark ? Colors.grey[400] : AppTheme.textSecondary, size: 20),
-                          const SizedBox(width: 12),
-                          Text(
-                            _dueDate != null
-                                ? DateFormat('MMMM dd, yyyy').format(_dueDate!)
-                                : 'Select Due Date',
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Today\'s Ratio',
+                                    style: TextStyle(
+                                        fontSize: 12, color: AppTheme.textSecondary)),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$presentCount / ${list.length} Present',
+                                  style: const TextStyle(
+                                      fontSize: 20, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF7ED321).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '$rate% Rate',
+                              style: const TextStyle(
+                                color: Color(0xFF7ED321),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 28),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (_titleController.text.trim().isEmpty || _dueDate == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please complete all assignment details')),
-                          );
-                          return;
-                        }
-                        setState(() {
-                          _homeworks.insert(0, {
-                            'title': _titleController.text.trim(),
-                            'subject': _selectedSubject,
-                            'dueDate': DateFormat('MMMM dd, yyyy').format(_dueDate!),
-                            'status': 'Active',
-                            'grade': 'Grade 3-A',
-                            'submissions': '0 / 24'
-                          });
-                        });
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Assignment added successfully!'),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            margin: const EdgeInsets.all(12),
+                    if (overview.slots.length > 1) ...[
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: _classRoomFilter,
+                        decoration: InputDecoration(
+                          labelText: SchoolConfig.gradeOnlyEnrollment
+                              ? 'Filter by grade'
+                              : 'Filter by section',
+                          filled: true,
+                          fillColor: isDark ? AppTheme.darkSurface : Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                                color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF9013FE),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('All my grades'),
+                          ),
+                          ...overview.slots.map(
+                            (s) => DropdownMenuItem(
+                              value: s.classRoomId,
+                              child: Text(
+                                SchoolConfig.gradeOnlyEnrollment
+                                    ? s.gradeName
+                                    : EnrollmentDisplay.teacherSlotLine(
+                                        s.gradeName,
+                                        s.className,
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _classRoomFilter = v),
                       ),
-                      child: const Text('Publish Assignment', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                    ],
+                    const SizedBox(height: 14),
+                    TextField(
+                      onChanged: (val) => setState(() => _searchQuery = val),
+                      decoration: InputDecoration(
+                        hintText: 'Search students...',
+                        prefixIcon: const Icon(Icons.search_rounded,
+                            color: AppTheme.textSecondary),
+                        filled: true,
+                        fillColor: isDark ? AppTheme.darkSurface : Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                              color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                              color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            );
-          },
-        );
-      },
+              Expanded(
+                child: list.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No students match your search.',
+                          style: TextStyle(
+                              color: isDark ? Colors.grey[400] : AppTheme.textSecondary),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: list.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final student = list[index];
+                          final isPresent = attendance.isPresent(student.id);
+                          final age = student.displayAge;
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppTheme.darkSurface : Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isPresent
+                                    ? const Color(0xFF7ED321).withValues(alpha: 0.3)
+                                    : (isDark
+                                        ? Colors.grey.shade800
+                                        : AppTheme.inputBorder),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 22,
+                                  backgroundImage: student.imageUrl.isNotEmpty
+                                      ? NetworkImage(student.imageUrl)
+                                      : null,
+                                  backgroundColor: isPresent
+                                      ? const Color(0xFF7ED321).withValues(alpha: 0.12)
+                                      : Colors.redAccent.withValues(alpha: 0.1),
+                                  child: student.imageUrl.isEmpty
+                                      ? Text(
+                                          student.fullName.isNotEmpty
+                                              ? student.fullName[0]
+                                              : '?',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: isPresent
+                                                ? const Color(0xFF7ED321)
+                                                : Colors.redAccent,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        student.fullName,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold, fontSize: 14),
+                                      ),
+                                      Text(
+                                        age != null
+                                            ? 'Enrolled • $age years old'
+                                            : 'Enrolled student',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark
+                                              ? Colors.grey[400]
+                                              : AppTheme.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Switch(
+                                  value: isPresent,
+                                  activeThumbColor: const Color(0xFF7ED321),
+                                  activeTrackColor:
+                                      const Color(0xFF7ED321).withValues(alpha: 0.2),
+                                  onChanged: attendance.isSaving
+                                      ? null
+                                      : (value) async {
+                                          await attendance.setPresent(
+                                            student: student,
+                                            teacherId: teacherId,
+                                            present: value,
+                                          );
+                                          if (!context.mounted) return;
+                                          if (attendance.error != null) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text(attendance.error!)),
+                                            );
+                                            return;
+                                          }
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                '${student.fullName} saved as ${value ? 'present' : 'absent'}',
+                                              ),
+                                              duration: const Duration(seconds: 1),
+                                              behavior: SnackBarBehavior.floating,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              margin: const EdgeInsets.all(12),
+                                            ),
+                                          );
+                                        },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
     );
   }
+}
+
+class _HonestNextStepsCard extends StatelessWidget {
+  final int rosterCount;
+  final bool isDark;
+
+  const _HonestNextStepsCard({
+    required this.rosterCount,
+    required this.isDark,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.warmNeutral,
-      appBar: AppBar(
-        title: const Text('Homework & Tasks', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: false,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder,
+        ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddAssignmentSheet,
-        backgroundColor: const Color(0xFF9013FE),
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_task_rounded),
-        label: const Text('Assign Homework', style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(20),
-        physics: const BouncingScrollPhysics(),
-        itemCount: _homeworks.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final hw = _homeworks[index];
-          final subjectColor = switch (hw['subject']) {
-            'Mathematics' => const Color(0xFF4A90E2),
-            'English Language' => const Color(0xFF7ED321),
-            'Natural Sciences' => const Color(0xFF9013FE),
-            _ => const Color(0xFFE2894A),
-          };
-
-          return Material(
-            color: isDark ? AppTheme.darkSurface : Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: () => GradeEntrySheet.show(
-                context,
-                assignmentTitle: hw['title'] as String,
-                subject: hw['subject'] as String,
-              ),
-              child: Ink(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: subjectColor.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              hw['subject'] as String,
-                              style: TextStyle(color: subjectColor, fontWeight: FontWeight.bold, fontSize: 10),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: Colors.teal.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              hw['status'] as String,
-                              style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold, fontSize: 10),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        hw['title'] as String,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Class: ${hw['grade']}',
-                        style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : AppTheme.textSecondary),
-                      ),
-                      const SizedBox(height: 12),
-                      const Divider(height: 1),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Icon(Icons.calendar_month_rounded, size: 14, color: isDark ? Colors.grey[400] : AppTheme.textSecondary),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Due: ${hw['dueDate']}',
-                            style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[300] : AppTheme.textPrimary, fontWeight: FontWeight.w500),
-                          ),
-                          const Spacer(),
-                          Icon(Icons.grade_rounded, size: 14, color: isDark ? Colors.grey[400] : AppTheme.textSecondary),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Tap to grade',
-                            style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[300] : AppTheme.textPrimary, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'What you can do now',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            rosterCount == 0
+                ? 'Once admin assigns you (Staff tab) and parents enroll students in your '
+                    'grade, mark attendance here and publish homework from the Homework tab.'
+                : 'You have $rosterCount student(s) in your grade(s). '
+                    'Mark attendance daily and publish homework for each subject you teach.',
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: isDark ? Colors.grey[400] : AppTheme.textSecondary,
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
 }
 
 // ==================== MESSAGES TAB ====================
-class _TeacherMessagesTab extends StatefulWidget {
+class _TeacherMessagesTab extends StatelessWidget {
   const _TeacherMessagesTab();
 
   @override
-  State<_TeacherMessagesTab> createState() => _TeacherMessagesTabState();
-}
-
-class _TeacherMessagesTabState extends State<_TeacherMessagesTab> {
-  final List<Map<String, dynamic>> _messages = [
-    {
-      'parent': 'Helen Watson (Emma\'s Mom)',
-      'preview': 'Sure teacher, Emma will review her division rules tonight!',
-      'time': '10:45 AM',
-      'unread': true,
-    },
-    {
-      'parent': 'David Rodrigo (Olivia\'s Dad)',
-      'preview': 'Hello, Olivia will be absent today due to dental cleaning.',
-      'time': '08:12 AM',
-      'unread': false,
-    },
-    {
-      'parent': 'Jane Loren (Sophia\'s Mom)',
-      'preview': 'Excellent! Thanks for the updates on weekly badges.',
-      'time': 'Yesterday',
-      'unread': false,
-    },
-  ];
-
-  final _textController = TextEditingController();
-
-  void _sendMessageSimulation(String parent) {
-    if (_textController.text.trim().isEmpty) return;
-    final text = _textController.text.trim();
-    setState(() {
-      for (var msg in _messages) {
-        if (msg['parent'] == parent) {
-          msg['preview'] = 'You: $text';
-          msg['time'] = 'Just now';
-          msg['unread'] = false;
-        }
-      }
-    });
-    _textController.clear();
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Message sent to parent'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(12),
-      ),
-    );
-  }
-
-  void _openChatSheet(String parentName) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDark ? AppTheme.darkSurface : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    parentName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: isDark ? AppTheme.darkBackground : const Color(0xFFF9FAFB),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'This simulates messaging channels between teachers and parents. All logs are securely cryptographed.',
-                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, height: 1.4),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _textController,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'Type your message...',
-                  suffixIcon: IconButton(
-                    onPressed: () => _sendMessageSimulation(parentName),
-                    icon: const Icon(Icons.send_rounded, color: AppTheme.primaryBlue),
-                  ),
-                  filled: true,
-                  fillColor: isDark ? AppTheme.darkBackground : const Color(0xFFF9FAFB),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.warmNeutral,
-      appBar: AppBar(
-        title: const Text('Inbox Communication', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: false,
-      ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(20),
-        physics: const BouncingScrollPhysics(),
-        itemCount: _messages.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final msg = _messages[index];
-          return InkWell(
-            onTap: () => _openChatSheet(msg['parent']),
-            borderRadius: BorderRadius.circular(18),
-            child: Ink(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDark ? AppTheme.darkSurface : Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: msg['unread']
-                      ? AppTheme.primaryBlue.withValues(alpha: 0.35)
-                      : (isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
-                  width: msg['unread'] ? 1.5 : 1.0,
-                ),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.12),
-                    child: const Icon(Icons.person_rounded, color: AppTheme.primaryBlue),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              msg['parent'],
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                                color: msg['unread'] ? AppTheme.primaryBlue : (isDark ? Colors.white : AppTheme.textPrimary),
-                              ),
-                            ),
-                            Text(
-                              msg['time'],
-                              style: TextStyle(fontSize: 10, color: isDark ? Colors.grey[400] : AppTheme.textSecondary),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          msg['preview'],
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: msg['unread']
-                                ? (isDark ? Colors.white : AppTheme.textPrimary)
-                                : (isDark ? Colors.grey[400] : AppTheme.textSecondary),
-                            fontWeight: msg['unread'] ? FontWeight.w600 : FontWeight.normal,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
+    return const MessagesInbox(title: 'Inbox Communication', isTeacherInbox: true);
   }
 }
 
@@ -1148,10 +1069,17 @@ class _TeacherProfileTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = Provider.of<AuthProvider>(context).currentUser;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final school = context.watch<SchoolAdminProvider>();
+    final overview = context.watch<TeacherOverviewProvider>();
+    final schoolLabel = school.school?.name ?? 'School not loaded';
+    final assignmentLabel = overview.slots.isEmpty
+        ? 'Not assigned yet'
+        : overview.slots.map((s) => s.displayLabel).join(' · ');
+    final rosterLabel =
+        overview.rosterCount == 0 ? 'No enrolled students' : '${overview.rosterCount} students';
 
-    return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.warmNeutral,
-      appBar: AppBar(title: const Text('Profile Settings')),
+    return DashboardTabScaffold(
+      title: 'Profile Settings',
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -1193,16 +1121,33 @@ class _TeacherProfileTab extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
             ),
-            child: const Column(
+            child: Column(
               children: [
-                _ProfileStatRow(label: 'School Unit', value: 'North Academy Center'),
-                Divider(),
-                _ProfileStatRow(label: 'Class Assignment', value: 'Grade 3-A'),
-                Divider(),
-                _ProfileStatRow(label: 'Room Assignment', value: 'Room 104'),
+                _ProfileStatRow(label: 'School', value: schoolLabel),
+                const Divider(),
+                _ProfileStatRow(label: 'Assignments', value: assignmentLabel),
+                const Divider(),
+                _ProfileStatRow(label: 'Roster', value: rosterLabel),
               ],
             ),
           ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const TeacherProfileSetupScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.menu_book_outlined),
+              label: const Text('Update grades & subjects I teach'),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const AppearanceSetting(),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,

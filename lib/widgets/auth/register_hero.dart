@@ -137,7 +137,7 @@ class RegisterHeader extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            const KidCareLogo(iconSize: 20, fontSize: 18),
+            const KidCareLogo(iconSize: 20, fontSize: 16, compact: true),
             const Spacer(),
             const SizedBox(width: 48),
           ],

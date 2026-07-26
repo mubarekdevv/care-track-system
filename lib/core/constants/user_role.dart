@@ -1,5 +1,6 @@
-/// The four supported app roles — keep labels in sync with Firestore `users.role`.
+/// Supported app roles — keep labels in sync with Firestore `users.role`.
 enum UserRole {
+  admin('Admin'),
   parent('Parent'),
   teacher('Teacher'),
   child('Child'),
@@ -18,4 +19,10 @@ enum UserRole {
   }
 
   static List<String> get labels => UserRole.values.map((r) => r.label).toList();
+
+  /// Roles shown on public sign-up (Admin is assigned separately).
+  static List<String> get registerableLabels =>
+      UserRole.values.where((r) => r != UserRole.admin).map((r) => r.label).toList();
+
+  bool get isStaff => this == UserRole.admin || this == UserRole.teacher || this == UserRole.healthcare;
 }
