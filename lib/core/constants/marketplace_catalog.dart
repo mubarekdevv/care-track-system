@@ -22,7 +22,6 @@ class MarketplaceCatalog {
     MarketplaceCategory('Supplies', Icons.backpack_rounded, Color(0xFFF59E0B)),
     MarketplaceCategory('Health', Icons.medical_services_rounded, Color(0xFFE2894A)),
   ];
-
   static const List<ProductModel> products = [
     ProductModel(
       id: 'school-starter-kit',

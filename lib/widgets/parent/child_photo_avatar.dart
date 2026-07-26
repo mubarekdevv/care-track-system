@@ -50,6 +50,7 @@ class _ChildPhotoAvatarState extends State<ChildPhotoAvatar> {
       if (selected == null || !mounted) return;
 
       final bytes = await selected.readAsBytes();
+      if (!mounted) return;
       setState(() {
         _localPreview = bytes;
         _uploading = true;
