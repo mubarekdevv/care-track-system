@@ -97,7 +97,7 @@ class _BillingScreenState extends State<BillingScreen> {
                 const SizedBox(height: 8),
                 Text(
                   '${pending.length} open invoice${pending.length == 1 ? '' : 's'}',
-                  style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 12),
                 ),
               ],
             ),
@@ -208,7 +208,7 @@ class _InvoiceCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: (invoice.isPaid ? AppTheme.softGreen : Colors.orange).withOpacity(0.12),
+                  color: (invoice.isPaid ? AppTheme.softGreen : Colors.orange).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(

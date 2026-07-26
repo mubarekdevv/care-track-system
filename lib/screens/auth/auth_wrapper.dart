@@ -52,7 +52,7 @@ class AuthWrapper extends StatelessWidget {
               return const HealthcareDashboard();
             }
 
-            return _RolePlaceholderDashboard(
+            return const _RolePlaceholderDashboard(
               title: 'Dashboard',
               message: 'This role dashboard is under construction.',
             );

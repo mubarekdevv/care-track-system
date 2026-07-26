@@ -64,6 +64,7 @@ class _UserProfileAvatarState extends State<UserProfileAvatar> {
       if (selected == null || !mounted) return;
 
       final bytes = await selected.readAsBytes();
+      if (!mounted) return;
       setState(() {
         _localPreview = bytes;
         _uploading = true;
@@ -115,14 +116,14 @@ class _UserProfileAvatarState extends State<UserProfileAvatar> {
     if (user?.hasProfilePhoto == true) {
       return CircleAvatar(
         radius: widget.radius,
-        backgroundColor: accent.withOpacity(0.15),
+        backgroundColor: accent.withValues(alpha: 0.15),
         backgroundImage: NetworkImage(user!.profilePic!),
       );
     }
 
     return CircleAvatar(
       radius: widget.radius,
-      backgroundColor: accent.withOpacity(0.15),
+      backgroundColor: accent.withValues(alpha: 0.15),
       child: Text(
         _initial(user),
         style: TextStyle(
@@ -150,7 +151,7 @@ class _UserProfileAvatarState extends State<UserProfileAvatar> {
           gradient: gradient,
           boxShadow: [
             BoxShadow(
-              color: accent.withOpacity(0.25),
+              color: accent.withValues(alpha: 0.25),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),

@@ -39,13 +39,13 @@ class RoleSelectionScreen extends StatelessWidget {
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: isDark
-                              ? Colors.white.withOpacity(0.08)
-                              : Colors.white.withOpacity(0.85),
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.white.withValues(alpha: 0.85),
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             if (!isDark)
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -241,23 +241,23 @@ class _PremiumRoleCardState extends State<_PremiumRoleCard> {
             decoration: BoxDecoration(
               color: isDark
                   ? (_isHovered
-                      ? accentColor.withOpacity(0.08)
+                      ? accentColor.withValues(alpha: 0.08)
                       : AppTheme.darkSurface)
                   : (_isHovered
-                      ? accentColor.withOpacity(0.05)
+                      ? accentColor.withValues(alpha: 0.05)
                       : Colors.white),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: _isHovered
-                    ? accentColor.withOpacity(0.7)
+                    ? accentColor.withValues(alpha: 0.7)
                     : (isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
                 width: _isHovered ? 2.0 : 1.0,
               ),
               boxShadow: [
                 BoxShadow(
                   color: _isHovered
-                      ? accentColor.withOpacity(isDark ? 0.25 : 0.15)
-                      : Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                      ? accentColor.withValues(alpha: isDark ? 0.25 : 0.15)
+                      : Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
                   blurRadius: _isHovered ? 20 : 12,
                   offset: _isHovered ? const Offset(0, 8) : const Offset(0, 4),
                 ),
@@ -278,7 +278,7 @@ class _PremiumRoleCardState extends State<_PremiumRoleCard> {
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: accentColor.withOpacity(0.35),
+                              color: accentColor.withValues(alpha: 0.35),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -334,7 +334,7 @@ class _PremiumRoleCardState extends State<_PremiumRoleCard> {
                           Icon(
                             Icons.check_circle_rounded,
                             size: 13,
-                            color: accentColor.withOpacity(0.85),
+                            color: accentColor.withValues(alpha: 0.85),
                           ),
                           const SizedBox(width: 8),
                           Expanded(

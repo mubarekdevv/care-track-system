@@ -72,4 +72,36 @@ class AuthService {
   Future<void> updateProfilePic(String uid, String profilePicUrl) async {
     await _db.collection('users').doc(uid).update({'profilePic': profilePicUrl}).timeout(const Duration(seconds: 10));
   }
+
+  /// Ensures an authenticated user has a Firestore profile document.
+  ///
+  /// If the profile already exists it is returned; otherwise a default
+  /// profile is created so a user who authenticated but has no profile
+  /// (e.g. an interrupted sign-up) can still sign in.
+  Future<UserModel?> ensureUserProfile({
+    required String uid,
+    required String email,
+    String? fullName,
+    String role = 'Parent',
+  }) async {
+    final docRef = _db.collection('users').doc(uid);
+    final snapshot = await docRef.get().timeout(const Duration(seconds: 10));
+
+    if (snapshot.exists) {
+      final data =
+          Map<String, dynamic>.from(snapshot.data() as Map<String, dynamic>);
+      data['uid'] = uid;
+      return UserModel.fromMap(data);
+    }
+
+    final newUser = UserModel(
+      uid: uid,
+      email: email,
+      fullName: fullName ?? email.split('@').first,
+      role: role,
+    );
+
+    await docRef.set(newUser.toMap()).timeout(const Duration(seconds: 10));
+    return newUser;
+  }
 }

@@ -132,7 +132,7 @@ class _ChildHomeTab extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF7ED321).withOpacity(0.15),
+                          color: const Color(0xFF7ED321).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Text(
@@ -206,7 +206,7 @@ class _PlayfulHeader extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF9013FE).withOpacity(0.3),
+              color: const Color(0xFF9013FE).withValues(alpha: 0.3),
               blurRadius: 18,
               offset: const Offset(0, 8),
             ),
@@ -239,7 +239,7 @@ class _PlayfulHeader extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -261,7 +261,7 @@ class _PlayfulHeader extends StatelessWidget {
               children: [
                 Text(
                   'My Progress (XP)',
-                  style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w600),
                 ),
                 Text(
                   '$xp / ${ChildGamificationProvider.xpPerLevel} XP',
@@ -281,7 +281,7 @@ class _PlayfulHeader extends StatelessWidget {
                     value: value,
                     minHeight: 10,
                     color: Colors.amber,
-                    backgroundColor: Colors.white.withOpacity(0.2),
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
                   ),
                 );
               },
@@ -382,7 +382,7 @@ class _NextQuestCard extends StatelessWidget {
         child: Ink(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: quest.color.withOpacity(0.35)),
+            border: Border.all(color: quest.color.withValues(alpha: 0.35)),
           ),
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -432,12 +432,12 @@ class _ScheduleCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isCurrent
-              ? item.color.withOpacity(0.6)
+              ? item.color.withValues(alpha: 0.6)
               : (isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
           width: isCurrent ? 2 : 1,
         ),
         boxShadow: isCurrent
-            ? [BoxShadow(color: item.color.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 4))]
+            ? [BoxShadow(color: item.color.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 4))]
             : null,
       ),
       child: Row(
@@ -445,7 +445,7 @@ class _ScheduleCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: item.color.withOpacity(0.12),
+              color: item.color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(item.icon, color: item.color, size: 24),
@@ -471,7 +471,7 @@ class _ScheduleCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: item.color.withOpacity(0.12),
+                          color: item.color.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text('Up next', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: item.color)),
@@ -667,7 +667,7 @@ class _QuestTileState extends State<_QuestTile> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: completed
-                ? const Color(0xFF7ED321).withOpacity(0.3)
+                ? const Color(0xFF7ED321).withValues(alpha: 0.3)
                 : (widget.isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
           ),
         ),
@@ -680,7 +680,7 @@ class _QuestTileState extends State<_QuestTile> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: accent.withOpacity(0.12),
+                      color: accent.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -808,10 +808,10 @@ class _BadgeCard extends StatelessWidget {
           color: isDark ? AppTheme.darkSurface : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: unlocked ? accent.withOpacity(0.3) : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+            color: unlocked ? accent.withValues(alpha: 0.3) : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
           ),
           boxShadow: unlocked
-              ? [BoxShadow(color: accent.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 4))]
+              ? [BoxShadow(color: accent.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 4))]
               : null,
         ),
         child: Column(
@@ -820,7 +820,7 @@ class _BadgeCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: unlocked ? accent.withOpacity(0.12) : Colors.grey.withOpacity(0.1),
+                color: unlocked ? accent.withValues(alpha: 0.12) : Colors.grey.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(badge.icon, color: unlocked ? accent : Colors.grey, size: 32),
@@ -878,7 +878,7 @@ class _ChildProfileTab extends StatelessWidget {
           Text(
             'Tap your photo to update',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary.withOpacity(0.8)),
+            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary.withValues(alpha: 0.8)),
           ),
           const SizedBox(height: 16),
           Text(
@@ -895,7 +895,7 @@ class _ChildProfileTab extends StatelessWidget {
           Center(
             child: Chip(
               label: Text(user?.role ?? 'Child', style: const TextStyle(fontWeight: FontWeight.bold)),
-              backgroundColor: const Color(0xFF9013FE).withOpacity(0.12),
+              backgroundColor: const Color(0xFF9013FE).withValues(alpha: 0.12),
               side: BorderSide.none,
             ),
           ),

@@ -21,12 +21,12 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     return Scaffold(
       body: IndexedStack(
         index: _navIndex,
-        children: [
-          const _TeacherHomeTab(),
-          const _TeacherAttendanceTab(),
-          const _TeacherHomeworkTab(),
-          const _TeacherMessagesTab(),
-          const _TeacherProfileTab(),
+        children: const [
+          _TeacherHomeTab(),
+          _TeacherAttendanceTab(),
+          _TeacherHomeworkTab(),
+          _TeacherMessagesTab(),
+          _TeacherProfileTab(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -174,7 +174,7 @@ class _TeacherHomeTab extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF7ED321).withOpacity(0.25),
+              color: const Color(0xFF7ED321).withValues(alpha: 0.25),
               blurRadius: 18,
               offset: const Offset(0, 8),
             ),
@@ -209,7 +209,7 @@ class _TeacherHomeTab extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.18),
+                color: Colors.white.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
@@ -313,7 +313,7 @@ class _ClassScheduleCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.12),
+              color: accentColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(icon, color: accentColor, size: 24),
@@ -341,7 +341,7 @@ class _ClassScheduleCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.06) : AppTheme.warmNeutral,
+              color: isDark ? Colors.white.withValues(alpha: 0.06) : AppTheme.warmNeutral,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -495,7 +495,7 @@ class _TeacherAttendanceTabState extends State<_TeacherAttendanceTab> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF7ED321).withOpacity(0.12),
+                            color: const Color(0xFF7ED321).withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -554,7 +554,7 @@ class _TeacherAttendanceTabState extends State<_TeacherAttendanceTab> {
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: isPresent
-                                  ? const Color(0xFF7ED321).withOpacity(0.3)
+                                  ? const Color(0xFF7ED321).withValues(alpha: 0.3)
                                   : (isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
                             ),
                           ),
@@ -563,8 +563,8 @@ class _TeacherAttendanceTabState extends State<_TeacherAttendanceTab> {
                               CircleAvatar(
                                 radius: 22,
                                 backgroundColor: isPresent
-                                    ? const Color(0xFF7ED321).withOpacity(0.12)
-                                    : Colors.redAccent.withOpacity(0.1),
+                                    ? const Color(0xFF7ED321).withValues(alpha: 0.12)
+                                    : Colors.redAccent.withValues(alpha: 0.1),
                                 child: Text(
                                   student['name'].toString()[0],
                                   style: TextStyle(
@@ -594,8 +594,8 @@ class _TeacherAttendanceTabState extends State<_TeacherAttendanceTab> {
                               ),
                               Switch(
                                 value: isPresent,
-                                activeColor: const Color(0xFF7ED321),
-                                activeTrackColor: const Color(0xFF7ED321).withOpacity(0.2),
+                                activeThumbColor: const Color(0xFF7ED321),
+                                activeTrackColor: const Color(0xFF7ED321).withValues(alpha: 0.2),
                                 onChanged: (value) {
                                   setState(() {
                                     student['present'] = value;
@@ -714,7 +714,7 @@ class _TeacherHomeworkTabState extends State<_TeacherHomeworkTab> {
                   const Text('Subject', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
-                    value: _selectedSubject,
+                    initialValue: _selectedSubject,
                     dropdownColor: isDark ? AppTheme.darkSurface : Colors.white,
                     decoration: InputDecoration(
                       filled: true,
@@ -871,7 +871,7 @@ class _TeacherHomeworkTabState extends State<_TeacherHomeworkTab> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: subjectColor.withOpacity(0.12),
+                              color: subjectColor.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -882,7 +882,7 @@ class _TeacherHomeworkTabState extends State<_TeacherHomeworkTab> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: Colors.teal.withOpacity(0.12),
+                              color: Colors.teal.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -1080,7 +1080,7 @@ class _TeacherMessagesTabState extends State<_TeacherMessagesTab> {
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: msg['unread']
-                      ? AppTheme.primaryBlue.withOpacity(0.35)
+                      ? AppTheme.primaryBlue.withValues(alpha: 0.35)
                       : (isDark ? Colors.grey.shade800 : AppTheme.inputBorder),
                   width: msg['unread'] ? 1.5 : 1.0,
                 ),
@@ -1089,8 +1089,8 @@ class _TeacherMessagesTabState extends State<_TeacherMessagesTab> {
                 children: [
                   CircleAvatar(
                     radius: 22,
-                    backgroundColor: AppTheme.primaryBlue.withOpacity(0.12),
-                    child: Icon(Icons.person_rounded, color: AppTheme.primaryBlue),
+                    backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.12),
+                    child: const Icon(Icons.person_rounded, color: AppTheme.primaryBlue),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -1161,7 +1161,7 @@ class _TeacherProfileTab extends StatelessWidget {
           Text(
             'Tap your photo to update',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary.withOpacity(0.8)),
+            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary.withValues(alpha: 0.8)),
           ),
           const SizedBox(height: 16),
           Text(
@@ -1181,7 +1181,7 @@ class _TeacherProfileTab extends StatelessWidget {
                 user?.role ?? 'Teacher',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              backgroundColor: const Color(0xFF7ED321).withOpacity(0.12),
+              backgroundColor: const Color(0xFF7ED321).withValues(alpha: 0.12),
               side: BorderSide.none,
             ),
           ),

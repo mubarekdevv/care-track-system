@@ -78,8 +78,8 @@ class _RoleOnboardingScreenState extends State<RoleOnboardingScreen> {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: isDark
-                              ? Colors.white.withOpacity(0.1)
-                              : Colors.white.withOpacity(0.85),
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : Colors.white.withValues(alpha: 0.85),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -229,7 +229,7 @@ class _OnboardingPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.06),
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -240,7 +240,7 @@ class _OnboardingPage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: accent.withOpacity(0.12),
+                    color: accent.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(slide.icon, color: accent, size: 32),
@@ -297,7 +297,7 @@ class _PageDots extends StatelessWidget {
           width: active ? 24 : 8,
           height: 8,
           decoration: BoxDecoration(
-            color: active ? accent : accent.withOpacity(0.25),
+            color: active ? accent : accent.withValues(alpha: 0.25),
             borderRadius: BorderRadius.circular(8),
           ),
         );

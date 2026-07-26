@@ -74,9 +74,9 @@ class ProductImage extends StatelessWidget {
   Widget _loadingPlaceholder() {
     final color = accent ?? AppTheme.primaryBlue;
     return Container(
-      color: color.withOpacity(0.08),
+      color: color.withValues(alpha: 0.08),
       alignment: Alignment.center,
-      child: Icon(Icons.image_outlined, color: color.withOpacity(0.5), size: 32),
+      child: Icon(Icons.image_outlined, color: color.withValues(alpha: 0.5), size: 32),
     );
   }
 }

@@ -90,7 +90,7 @@ class AuthIllustration extends StatelessWidget {
           borderRadius: borderRadius,
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryBlue.withOpacity(0.12),
+              color: AppTheme.primaryBlue.withValues(alpha: 0.12),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -134,12 +134,12 @@ class AuthIllustration extends StatelessWidget {
   Widget _loadingPlaceholder() {
     return fallback ??
         Container(
-          color: AppTheme.primaryBlue.withOpacity(0.06),
+          color: AppTheme.primaryBlue.withValues(alpha: 0.06),
           alignment: Alignment.center,
           child: Icon(
             Icons.image_outlined,
             size: (height * 0.28).clamp(20, 48),
-            color: AppTheme.textSecondary.withOpacity(0.45),
+            color: AppTheme.textSecondary.withValues(alpha: 0.45),
           ),
         );
   }

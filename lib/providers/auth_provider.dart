@@ -63,12 +63,10 @@ class AuthProvider with ChangeNotifier {
       User? user = await _authService.signIn(normalizedEmail, password);
       if (user != null) {
         _currentUser = await _authService.getUserData(user.uid);
-        if (_currentUser == null) {
-          _currentUser = await _authService.ensureUserProfile(
+        _currentUser ??= await _authService.ensureUserProfile(
             uid: user.uid,
             email: user.email ?? normalizedEmail,
           );
-        }
         if (_currentUser == null) {
           throw FirebaseAuthException(
             code: 'profile-not-found',

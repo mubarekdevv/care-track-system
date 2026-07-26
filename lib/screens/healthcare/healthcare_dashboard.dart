@@ -20,11 +20,11 @@ class _HealthcareDashboardState extends State<HealthcareDashboard> {
     return Scaffold(
       body: IndexedStack(
         index: _navIndex,
-        children: [
-          const _HealthcareHomeTab(),
-          const _HealthcarePatientsTab(),
-          const _HealthcareAppointmentsTab(),
-          const _HealthcareProfileTab(),
+        children: const [
+          _HealthcareHomeTab(),
+          _HealthcarePatientsTab(),
+          _HealthcareAppointmentsTab(),
+          _HealthcareProfileTab(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -173,7 +173,7 @@ class _HealthcareHomeTab extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: item.$5.withOpacity(0.12),
+                              color: item.$5.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: Icon(item.$4, color: item.$5, size: 24),
@@ -221,9 +221,9 @@ class _HealthcareHomeTab extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.redAccent.withOpacity(0.08),
+                    color: Colors.redAccent.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                    border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
                   ),
                   child: const Row(
                     children: [
@@ -271,7 +271,7 @@ class _HealthcareHomeTab extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFE2894A).withOpacity(0.25),
+              color: const Color(0xFFE2894A).withValues(alpha: 0.25),
               blurRadius: 18,
               offset: const Offset(0, 8),
             ),
@@ -306,7 +306,7 @@ class _HealthcareHomeTab extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.18),
+                color: Colors.white.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
@@ -543,7 +543,7 @@ class _HealthcarePatientsTabState extends State<_HealthcarePatientsTab> {
                   children: patient.vaccines.map((vax) {
                     return Chip(
                       label: Text(vax, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                      backgroundColor: const Color(0xFF4A90E2).withOpacity(0.12),
+                      backgroundColor: const Color(0xFF4A90E2).withValues(alpha: 0.12),
                       side: BorderSide.none,
                       padding: EdgeInsets.zero,
                     );
@@ -683,7 +683,7 @@ class _HealthcarePatientsTabState extends State<_HealthcarePatientsTab> {
                                 children: [
                                   CircleAvatar(
                                     radius: 20,
-                                    backgroundColor: const Color(0xFFE2894A).withOpacity(0.12),
+                                    backgroundColor: const Color(0xFFE2894A).withValues(alpha: 0.12),
                                     child: Text(
                                       p.name[0],
                                       style: const TextStyle(color: Color(0xFFE2894A), fontWeight: FontWeight.bold),
@@ -822,7 +822,7 @@ class _HealthcareAppointmentsTab extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE2894A).withOpacity(0.12),
+                    color: const Color(0xFFE2894A).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(Icons.event_note_rounded, color: Color(0xFFE2894A), size: 24),
@@ -842,7 +842,7 @@ class _HealthcareAppointmentsTab extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: visit.$5.withOpacity(0.12),
+                              color: visit.$5.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -893,7 +893,7 @@ class _HealthcareProfileTab extends StatelessWidget {
           Text(
             'Tap your photo to update',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary.withOpacity(0.8)),
+            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary.withValues(alpha: 0.8)),
           ),
           const SizedBox(height: 16),
           Text(
@@ -913,7 +913,7 @@ class _HealthcareProfileTab extends StatelessWidget {
                 user?.role ?? 'Healthcare',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              backgroundColor: const Color(0xFFE2894A).withOpacity(0.12),
+              backgroundColor: const Color(0xFFE2894A).withValues(alpha: 0.12),
               side: BorderSide.none,
             ),
           ),

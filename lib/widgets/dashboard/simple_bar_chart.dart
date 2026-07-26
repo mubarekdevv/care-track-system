@@ -58,7 +58,7 @@ class SimpleBarChart extends StatelessWidget {
                               end: Alignment.topCenter,
                               colors: [
                                 barColor,
-                                barColor.withOpacity(0.65),
+                                barColor.withValues(alpha: 0.65),
                               ],
                             ),
                             borderRadius: BorderRadius.circular(8),

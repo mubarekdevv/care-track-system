@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 class AuthPageRoute<T> extends PageRouteBuilder<T> {
   AuthPageRoute({
     required WidgetBuilder builder,
-    RouteSettings? settings,
+    super.settings,
   }) : super(
-          settings: settings,
           transitionDuration: const Duration(milliseconds: 320),
           reverseTransitionDuration: const Duration(milliseconds: 280),
           pageBuilder: (context, animation, secondaryAnimation) => builder(context),

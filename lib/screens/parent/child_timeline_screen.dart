@@ -103,7 +103,7 @@ class _ChildTimelineScreenState extends State<ChildTimelineScreen>
                               Text(
                                 'Tap photo to update',
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.85),
+                                  color: Colors.white.withValues(alpha: 0.85),
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -175,9 +175,9 @@ class _TimelineTab extends StatelessWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.15),
+                      color: color.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
-                      border: Border.all(color: color.withOpacity(0.4)),
+                      border: Border.all(color: color.withValues(alpha: 0.4)),
                     ),
                     child: Icon(event.icon, color: color, size: 18),
                   ),
@@ -278,7 +278,7 @@ class _AcademicsTab extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppTheme.softGreen.withOpacity(0.15),
+                  color: AppTheme.softGreen.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
@@ -356,7 +356,7 @@ class _HealthTab extends StatelessWidget {
                       .map(
                         (v) => Chip(
                           label: Text(v, style: const TextStyle(fontSize: 11)),
-                          backgroundColor: AppTheme.softGreen.withOpacity(0.12),
+                          backgroundColor: AppTheme.softGreen.withValues(alpha: 0.12),
                           side: BorderSide.none,
                         ),
                       )

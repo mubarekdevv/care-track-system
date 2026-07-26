@@ -49,7 +49,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             product.category,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          backgroundColor: _accent.withOpacity(0.12),
+                          backgroundColor: _accent.withValues(alpha: 0.12),
                           labelStyle: TextStyle(
                             color: _accent,
                             fontWeight: FontWeight.w600,
@@ -156,7 +156,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         color: isDark ? AppTheme.darkSurface : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.06),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
             blurRadius: 12,
             offset: const Offset(0, -4),
           ),

@@ -27,7 +27,7 @@ class LoginHeroIllustration extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.primaryBlue.withOpacity(0.35),
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.35),
                   blurRadius: 24,
                   offset: const Offset(0, 8),
                 ),
@@ -60,8 +60,8 @@ class LoginHeader extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withOpacity(0.1)
-                      : Colors.white.withOpacity(0.85),
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.white.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -78,9 +78,9 @@ class LoginHeader extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: const LoginHeroIllustration(),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: LoginHeroIllustration(),
         ),
       ],
     );

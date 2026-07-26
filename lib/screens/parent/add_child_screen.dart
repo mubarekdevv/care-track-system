@@ -55,6 +55,7 @@ class _AddChildScreenState extends State<AddChildScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text("Failed to pick image: $e"),
@@ -195,14 +196,14 @@ class _AddChildScreenState extends State<AddChildScreen> {
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                       color:
-                                          AppTheme.primaryBlue.withOpacity(0.3),
+                                          AppTheme.primaryBlue.withValues(alpha: 0.3),
                                       width: 3),
                                   color: isDark
                                       ? AppTheme.darkSurface
                                       : Colors.white,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
+                                      color: Colors.black.withValues(alpha: 0.05),
                                       blurRadius: 12,
                                       offset: const Offset(0, 6),
                                     )
@@ -273,8 +274,9 @@ class _AddChildScreenState extends State<AddChildScreen> {
                 TextFormField(
                   controller: _nameController,
                   validator: (val) {
-                    if (val == null || val.trim().isEmpty)
+                    if (val == null || val.trim().isEmpty) {
                       return "Please enter child's name";
+                    }
                     return null;
                   },
                   decoration: InputDecoration(
@@ -293,11 +295,13 @@ class _AddChildScreenState extends State<AddChildScreen> {
                   controller: _ageController,
                   keyboardType: TextInputType.number,
                   validator: (val) {
-                    if (val == null || val.trim().isEmpty)
+                    if (val == null || val.trim().isEmpty) {
                       return "Please enter age";
+                    }
                     final age = int.tryParse(val.trim());
-                    if (age == null || age < 0)
+                    if (age == null || age < 0) {
                       return "Please enter a valid age";
+                    }
                     return null;
                   },
                   decoration: InputDecoration(

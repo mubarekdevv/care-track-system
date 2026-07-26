@@ -45,10 +45,10 @@ class _AuthPrimaryButtonState extends State<AuthPrimaryButton> {
             style: ElevatedButton.styleFrom(
               backgroundColor: color,
               foregroundColor: Colors.white,
-              disabledBackgroundColor: color.withOpacity(0.55),
+              disabledBackgroundColor: color.withValues(alpha: 0.55),
               disabledForegroundColor: Colors.white70,
               elevation: _pressed ? 0 : 2,
-              shadowColor: color.withOpacity(0.35),
+              shadowColor: color.withValues(alpha: 0.35),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
             child: widget.isLoading

@@ -86,7 +86,7 @@ class _SummaryBanner extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Tracking $childCount ${childCount == 1 ? 'child' : 'children'} • Attendance avg 96%',
-                  style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 12),
                 ),
               ],
             ),
@@ -122,7 +122,7 @@ class _ChildReportCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 22,
-                backgroundColor: AppTheme.primaryBlue.withOpacity(0.12),
+                backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.12),
                 backgroundImage: child.imageUrl.isNotEmpty ? NetworkImage(child.imageUrl) : null,
                 child: child.imageUrl.isEmpty
                     ? Text(
@@ -183,7 +183,7 @@ class _DownloadCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.primaryBlue.withOpacity(0.12),
+              color: AppTheme.primaryBlue.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.download_rounded, color: AppTheme.primaryBlue),
